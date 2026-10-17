@@ -8,6 +8,7 @@ import android.content.Intent
 import android.os.Bundle
 import android.os.Parcel
 import android.os.ParcelFileDescriptor
+import io.github.mangi.eta.BuildConfig
 import io.github.mangi.eta.agent.model.AgentConversationCodec
 import io.github.mangi.eta.agent.model.AgentModelClient
 import io.github.mangi.eta.config.Prefs
@@ -83,7 +84,8 @@ internal object AgentRuntimeWire {
     /** service -> client：返回是否成功重新订阅指定 run。 */
     const val MSG_ATTACH_RUN_RESPONSE = 12
 
-    private const val MODULE_PACKAGE = "io.github.mangi.eta"
+    // 绑定目标取自构建产物的包名，debug 的 .debug 后缀自动生效。
+    private val MODULE_PACKAGE = BuildConfig.APPLICATION_ID
     private const val SERVICE_CLASS = "io.github.mangi.eta.agent.runtime.AgentRuntimeService"
 
     private const val KEY_TYPE = "type"

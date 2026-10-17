@@ -1,6 +1,7 @@
 package io.github.mangi.eta.agent.runtime
 
 import android.os.SystemClock
+import io.github.mangi.eta.BuildConfig
 import io.github.mangi.eta.agent.accessibility.AgentAccessibilityService
 import io.github.mangi.eta.agent.accessibility.PackageWindowVisibility
 import io.github.mangi.eta.core.AgentLogger
@@ -138,7 +139,8 @@ internal class EntrySurfaceGuard private constructor(
         private const val BREENO_PACKAGE_NAME = "com.heytap.speechassist"
         private const val XIAOAI_HANDOFF_SOURCE = "xiaoai"
         private const val XIAOAI_PACKAGE_NAME = "com.miui.voiceassist"
-        private const val ETA_PACKAGE_NAME = "io.github.mangi.eta"
+        // Eta 包名取自构建产物，debug 的 .debug 后缀自动生效。
+        private val ETA_PACKAGE_NAME = BuildConfig.APPLICATION_ID
         private const val NANOS_PER_MILLISECOND = 1_000_000L
     }
 }

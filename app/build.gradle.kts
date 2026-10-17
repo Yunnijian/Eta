@@ -56,6 +56,8 @@ android {
 
     buildTypes {
         debug {
+            // 与 release 共用一份安装：debug 包带 .debug 后缀，可同时安装。
+            applicationIdSuffix = ".debug"
             // 版本名带构建类型标记，设置页与 APK 文件名据此区分 Debug 包
             versionNameSuffix = "-debug" + buildMetadataSuffix
             isMinifyEnabled = false
@@ -80,7 +82,9 @@ android {
     }
 
     buildFeatures {
-        buildConfig = false
+        // 自识别的包名（无障碍保护、系统入口等）从 BuildConfig.APPLICATION_ID 读取，
+        // 以便 debug 的 .debug 后缀自动生效。
+        buildConfig = true
         compose = true
     }
 
