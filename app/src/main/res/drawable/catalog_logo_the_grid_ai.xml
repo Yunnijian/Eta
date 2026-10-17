@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 由 scripts/update-models-dev-catalog.py 生成，请勿手改。 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path android:pathData="M4 3L7.76471 6.40541V8.35135H4V3Z" android:fillColor="#FF000000" />
+    <path android:pathData="M4 21L7.76471 17.5946V15.6486H4V21Z" android:fillColor="#FF000000" />
+    <path android:pathData="M20 3L16.2353 6.40541V8.35135H20V3Z" android:fillColor="#FF000000" />
+    <path android:pathData="M20 21L16.2353 17.5946V15.6486H20V21Z" android:fillColor="#FF000000" />
+    <path android:pathData="M9.17642 3L11.0588 6.40542V8.35135H9.17642V3Z" android:fillColor="#FF000000" />
+    <path android:pathData="M9.17642 21L11.0588 17.5946V15.6486H9.17642V21Z" android:fillColor="#FF000000" />
+    <path android:pathData="M14.8236 3L12.9412 6.40542V8.35135H14.8236V3Z" android:fillColor="#FF000000" />
+    <path android:pathData="M14.8236 21L12.9412 17.5946V15.6486H14.8236V21Z" android:fillColor="#FF000000" />
+    <path android:pathData="M4 8.59458L7.7647 10.5405V13.4594L4 15.4054V8.59458Z" android:fillColor="#FF000000" />
+    <path android:pathData="M9.17642 8.59457L11.0588 10.5405V13.4594L9.17642 15.4054V8.59457Z" android:fillColor="#FF000000" />
+    <path android:pathData="M14.8236 8.59457L12.9412 10.5405V13.4594L14.8236 15.4054V8.59457Z" android:fillColor="#FF000000" />
+    <path android:pathData="M20 8.59458L16.2353 10.5405V13.4594L20 15.4054V8.59458Z" android:fillColor="#FF000000" />
+</vector>

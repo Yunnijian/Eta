@@ -17,6 +17,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
@@ -27,6 +28,7 @@ import io.github.mangi.eta.ui.components.EtaPreferenceDefaults
 import io.github.mangi.eta.ui.components.EtaPreferenceGroup
 import io.github.mangi.eta.ui.components.EtaPreferenceGroupTitle
 import io.github.mangi.eta.ui.components.EtaPreferenceIcon
+import io.github.mangi.eta.ui.components.catalogLogoRes
 import io.github.mangi.eta.ui.components.providerBrandLogoRes as sharedProviderBrandLogoRes
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -110,6 +112,33 @@ internal fun ProviderIcon(
             tint = EtaPreferenceColors.Blue,
         )
     }
+}
+
+/**
+ * models.dev 社区目录提供商的单调色图标，按主题色 tint 上色。
+ * 目录未收录该图标（无法无损转换）时回退到通用图标。
+ */
+@Composable
+internal fun CatalogProviderIcon(
+    catalogId: String,
+    modifier: Modifier = Modifier,
+) {
+    val logo = catalogLogoRes(catalogId)
+    if (logo != null) {
+        Image(
+            painter = painterResource(logo),
+            contentDescription = null,
+            contentScale = ContentScale.Fit,
+            colorFilter = ColorFilter.tint(MiuixTheme.colorScheme.onSurface),
+            modifier = modifier.size(EtaPreferenceDefaults.IconSize),
+        )
+        return
+    }
+    EtaPreferenceIcon(
+        icon = Icons.Rounded.Dns,
+        modifier = modifier,
+        tint = EtaPreferenceColors.Blue,
+    )
 }
 
 internal enum class TagChipTone { Normal, Emphasized }

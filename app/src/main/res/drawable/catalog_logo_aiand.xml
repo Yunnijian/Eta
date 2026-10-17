@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 由 scripts/update-models-dev-catalog.py 生成，请勿手改。 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path android:pathData="M20.119 1.616C20.590 1.257 21.269 1.620 21.232 2.234L21.010 5.873C20.997 6.084 20.894 6.278 20.729 6.403L3.577 19.441C3.121 19.788 2.462 19.461 2.462 18.867L2.462 15.408C2.462 15.181 2.568 14.968 2.744 14.834Z" android:fillColor="#FF000000" />
+    <path android:pathData="M20.085 8.663C20.681 8.202 21.538 8.635 21.538 9.398L21.538 21.603C21.538 22.113 21.132 22.526 20.632 22.526L20.076 22.526A0.211 0.211 0 0 1 19.923 22.460L16.374 18.729C16.081 18.421 15.611 18.377 15.268 18.626L9.942 22.486A0.211 0.211 0 0 1 9.818 22.526L4.841 22.526C3.973 22.526 3.602 21.402 4.294 20.868Z" android:fillColor="#FF000000" />
+</vector>

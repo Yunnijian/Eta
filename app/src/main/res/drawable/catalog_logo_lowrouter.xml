@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 由 scripts/update-models-dev-catalog.py 生成，请勿手改。 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="179"
+    android:viewportHeight="179">
+    <group android:translateX="0" android:translateY="14">
+        <path android:pathData="M7 74.3 141 5.3M7 74.3l134 71" android:strokeColor="#FF000000" android:strokeWidth="8" android:strokeLineCap="round" android:strokeLineJoin="miter" />
+        <path android:pathData="M7 74.3l146 1" android:strokeColor="#FF000000" android:strokeWidth="14" android:strokeLineCap="round" android:strokeLineJoin="miter" />
+        <path android:pathData="M131.6 20A16 16 0 1 0 163.6 20A16 16 0 1 0 131.6 20Z" android:strokeColor="#FF000000" android:strokeWidth="8" android:strokeLineCap="round" android:strokeLineJoin="miter" />
+        <path android:pathData="M131.6 130.7A16 16 0 1 0 163.6 130.7A16 16 0 1 0 131.6 130.7Z" android:strokeColor="#FF000000" android:strokeWidth="8" android:strokeLineCap="round" android:strokeLineJoin="miter" />
+        <path android:pathData="M0 74.8A25 25 0 1 0 50 74.8A25 25 0 1 0 0 74.8Z" android:fillColor="#FF000000" />
+        <path android:pathData="M128.7 74.8A25 25 0 1 0 178.7 74.8A25 25 0 1 0 128.7 74.8Z" android:fillColor="#FF000000" />
+    </group>
+</vector>

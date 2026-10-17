@@ -5,8 +5,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.text.selection.SelectionContainer
@@ -157,25 +159,31 @@ internal fun CommunityCatalogScreen(
                     pressFeedbackType = PressFeedbackType.Sink,
                     onClick = { onNavigate(AppRoute.CommunityCatalogProvider(provider.id)) },
                 ) {
-                    Text(
-                        text = provider.name,
-                        style = MiuixTheme.textStyles.body1,
-                        fontWeight = FontWeight.Medium,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    Text(
-                        text = provider.baseUrl,
-                        style = MiuixTheme.textStyles.body2,
-                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    Text(
-                        text = "${provider.models.size} 个可导入模型",
-                        style = MiuixTheme.textStyles.footnote1,
-                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        CatalogProviderIcon(provider.id)
+                        Spacer(Modifier.width(12.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = provider.name,
+                                style = MiuixTheme.textStyles.body1,
+                                fontWeight = FontWeight.Medium,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            Text(
+                                text = provider.baseUrl,
+                                style = MiuixTheme.textStyles.body2,
+                                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            Text(
+                                text = "${provider.models.size} 个可导入模型",
+                                style = MiuixTheme.textStyles.footnote1,
+                                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -257,8 +265,11 @@ internal fun CommunityCatalogProviderScreen(
 
         item(key = "provider") {
             ProviderSection(title = "提供商") {
-                EtaPreference(title = "名称", summary = provider.name)
-                EtaPreferenceDivider(hasLeading = false)
+                EtaPreference(
+                    title = provider.name,
+                    startAction = { CatalogProviderIcon(provider.id) },
+                )
+                EtaPreferenceDivider()
                 EtaPreference(title = null) {
                     Text(
                         text = "Base URL",

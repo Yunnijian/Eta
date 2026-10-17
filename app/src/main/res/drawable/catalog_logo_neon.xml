@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 由 scripts/update-models-dev-catalog.py 生成，请勿手改。 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="64"
+    android:viewportHeight="64">
+    <path android:pathData="M57.113 7.01415V57.5526L37.5592 40.6076V57.5526H7V7L57.113 7.01415ZM13.1428 51.4168H31.4164V27.1437L50.9705 44.4238V13.1482L13.1428 13.1373V51.4168Z" android:fillColor="#FF000000" android:fillType="evenOdd" />
+</vector>

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 由 scripts/update-models-dev-catalog.py 生成，请勿手改。 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="400"
+    android:viewportHeight="400">
+    <path android:pathData="M110 80H170V140H110Z" android:fillColor="#FF000000" />
+    <path android:pathData="M170 80H230V140H170Z" android:fillColor="#FF000000" />
+    <path android:pathData="M110 140H170V200H110Z" android:fillColor="#FF000000" />
+    <path android:pathData="M230 140H290V200H230Z" android:fillColor="#FF000000" />
+    <path android:pathData="M110 200H170V260H110Z" android:fillColor="#FF000000" />
+    <path android:pathData="M170 200H230V260H170Z" android:fillColor="#FF000000" />
+    <path android:pathData="M110 260H170V320H110Z" android:fillColor="#FF000000" />
+    <path android:pathData="M230 260H290V320H230Z" android:fillColor="#FF000000" />
+</vector>

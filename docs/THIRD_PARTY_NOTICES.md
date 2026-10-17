@@ -10,6 +10,8 @@ APK 的 `assets/native-sources` 附带校验过的原始源码，以及从实际
 
 Eta 的离线模型目录快照来自 [models.dev](https://models.dev/api.json)，由 `scripts/update-models-dev-catalog.py` 获取原始 JSON 并压缩后随 APK 分发。models.dev 的目录数据和源码采用 [MIT License](https://github.com/anomalyco/models.dev/blob/dev/LICENSE)，版权归 © 2025 models.dev。版权与许可全文随 APK 保存在 [`assets/licenses/models-dev-MIT.txt`](../app/src/main/assets/licenses/models-dev-MIT.txt)。
 
+同一个脚本还会按目录中的提供商 id 获取 [models.dev 提供商图标](https://models.dev/logos/)（`models.dev` 仓库 `providers/<id>/logo.svg`），转换成单调色 VectorDrawable 后随 APK 分发，用于在「从目录添加」页面展示各提供商。这些图标是**各提供商各自的品牌标识/商标**，归对应提供商所有；Eta 仅按 models.dev 的 MIT 许可随包分发其原始资源，不主张任何图标权利，也不代表与这些提供商的合作或背书。商标使用若需另行授权，请直接联系对应提供商。
+
 ## 网页正文解析
 
 Eta 使用 [jsoup](https://jsoup.org/) 在本机解析已经下载的 HTML。jsoup 采用 MIT License，版权归 Jonathan Hedley；许可全文随 APK 保存在 [`assets/licenses/jsoup-MIT.txt`](../app/src/main/assets/licenses/jsoup-MIT.txt)。依赖版本以 `gradle/libs.versions.toml` 为准。
