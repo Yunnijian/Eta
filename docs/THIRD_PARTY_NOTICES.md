@@ -179,3 +179,13 @@ Eta 不把下列工具打包进 APK。用户在 Linux 工具环境页面主动�
 JADX 的发行包许可证会随所需 CLI 文件一并保留；Apktool、smali 与 baksmali 的许可证和第三方声明保留在各自 JAR 制品中。Eta 仅提供经过校验的安装、命令入口和能力边界，不对这些工具重新授权。
 
 GitHub 的实际制品域名不可达或较慢时，安装器可能通过 `gh-proxy.com` 请求同一个公开 Release URL；Node.js 制品可能先通过 `cdn.npmmirror.com` 请求。下载入口会获知用户的网络地址及所请求的公开制品；Eta 不向其发送账号、Cookie、API Key 或其他 Eta 数据，并在落盘前继续校验内置的官方制品大小与 SHA-256。不希望使用下载入口的用户可以不安装对应可选档案。
+
+## 可选 Coding Agent
+
+Eta 不把下列工具打包进 APK。用户在 Linux 工具环境页面主动安装对应工具时，Eta 通过 npm 安装最新正式版，制品只保存在用户当前选择的 Alpine 或 Debian 环境中，适用各自许可证；Eta 仅提供安装、命令入口与能力边界，不对这些工具重新授权。
+
+| 工具 | 来源 | 许可证 |
+| --- | --- | --- |
+| OpenCode（`@opencode/cli`） | [anomalyco/opencode](https://github.com/anomalyco/opencode) | MIT License |
+
+国内镜像优先，官方 registry 兜底；`registry.npmmirror.com` 等下载入口会获知用户的网络地址及所请求的公开包名，Eta 不向其发送账号、Cookie、API Key 或其他 Eta 数据。

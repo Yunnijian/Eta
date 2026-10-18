@@ -83,6 +83,17 @@
     <string name="capability_kimi_not_installed">請先在 Linux 環境中安裝 Kimi Code</string>
     <string name="capability_kimi_proot_unavailable">PRoot 未能啟動，請在 Linux 環境中檢查或重新安裝一般環境</string>
     <string name="capability_kimi_logs_unavailable">無法讀取 Kimi 啟動日誌，請在終端檢查環境後重試</string>
+    <string name="capability_opencode_checking">檢查 OpenCode Web…</string>
+    <string name="capability_opencode_install">安裝 OpenCode Web</string>
+    <string name="capability_opencode_preparing">OpenCode Web 準備中…</string>
+    <string name="capability_opencode_open">開啟 OpenCode Web · 執行中</string>
+    <string name="capability_opencode_retry">OpenCode Web 啟動失敗 · 重試</string>
+    <string name="capability_opencode_stop">停止 OpenCode Web</string>
+    <string name="capability_opencode_root_required">目前 OpenCode 環境需要 Root，請恢復授權或在 Linux 環境中安裝 PRoot 版本</string>
+    <string name="capability_opencode_exited">OpenCode Web 程序已結束，請在終端檢查 OpenCode 設定後重試</string>
+    <string name="capability_opencode_not_installed">請先在 Linux 環境中安裝 OpenCode</string>
+    <string name="capability_opencode_proot_unavailable">PRoot 未能啟動，請在 Linux 環境中檢查或重新安裝一般環境</string>
+    <string name="capability_opencode_logs_unavailable">無法讀取 OpenCode 啟動日誌，請在終端檢查環境後重試</string>
     <string name="capability_workspace_public_denied">公共目錄尚未授權。可重試授權，或透過「工作區與檔案」匯入需要的檔案</string>
     <string name="capability_workspace_files">工作區檔案</string>
     <string name="capability_workspace_empty_summary">匯入檔案，或透過終端任務產生檔案</string>

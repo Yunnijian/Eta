@@ -48,6 +48,23 @@ internal class AgentAppViewModel(application: Application) : AndroidViewModel(ap
     var kimiWebState by mutableStateOf(KimiWebUiState())
         private set
     private var kimiWebJob: Job? = null
+    val opencodeWebLauncher = OpenCodeWebLauncher(
+        context = application,
+        daemonSupervisor = DetachedTaskSupervisor(
+            logger = AndroidAgentLogger,
+            recordsFile = DetachedTaskSupervisor.defaultRecordsFile(application),
+            linuxRootfsPathProvider = { environment ->
+                environment.linuxDistribution?.let { distribution ->
+                    LinuxEnvironmentPaths.rootfsDir(application, distribution).absolutePath
+                }
+            },
+            linuxSharedMountsProvider = { SharedFolderMounts.current() },
+        ),
+    )
+
+    var opencodeWebState by mutableStateOf(OpenCodeWebUiState())
+        private set
+    private var opencodeWebJob: Job? = null
 
     fun refreshKimiWeb() {
         if (kimiWebJob?.isActive == true) return
@@ -100,6 +117,62 @@ internal class AgentAppViewModel(application: Application) : AndroidViewModel(ap
                 else kimiWebLauncher.stop(distribution.terminalEnvironment)
             kimiWebState = if (stopped) KimiWebUiState(KimiWebPhase.READY)
                 else KimiWebUiState(KimiWebPhase.FAILED, status.code ?: "STOP_FAILED")
+        }
+    }
+
+    fun refreshOpenCodeWeb() {
+        if (opencodeWebJob?.isActive == true) return
+        viewModelScope.launch {
+            val status = withContext(Dispatchers.IO) {
+                val distribution = LinuxEnvironmentSettingsRepository.current(getApplication())
+                val rootfs = LinuxEnvironmentPaths.rootfsDir(getApplication(), distribution)
+                if (!linuxPackageProfileReady(rootfs, LinuxPackageProfiles.OPENCODE)) {
+                    OpenCodeWebUiState(OpenCodeWebPhase.NOT_INSTALLED)
+                } else {
+                    val runtime = opencodeWebLauncher.status(distribution.terminalEnvironment)
+                    when {
+                        runtime.running -> OpenCodeWebUiState(OpenCodeWebPhase.RUNNING)
+                        runtime.code != null -> OpenCodeWebUiState(OpenCodeWebPhase.FAILED, runtime.code)
+                        opencodeWebState.phase == OpenCodeWebPhase.FAILED -> opencodeWebState
+                        else -> OpenCodeWebUiState(OpenCodeWebPhase.READY)
+                    }
+                }
+            }
+            if (opencodeWebJob?.isActive != true) opencodeWebState = status
+        }
+    }
+
+    fun launchOpenCodeWeb(onFinished: (OpenCodeWebLaunchResult) -> Unit) {
+        if (opencodeWebJob?.isActive == true) return
+        opencodeWebState = OpenCodeWebUiState(OpenCodeWebPhase.STARTING)
+        opencodeWebJob = viewModelScope.launch {
+            val distribution = LinuxEnvironmentSettingsRepository.current(getApplication())
+            val result = try {
+                opencodeWebLauncher.launch(distribution.terminalEnvironment)
+            } finally {
+                if (opencodeWebState.phase == OpenCodeWebPhase.STARTING) {
+                    opencodeWebState = OpenCodeWebUiState(OpenCodeWebPhase.READY)
+                }
+            }
+            opencodeWebState = when (result) {
+                is OpenCodeWebLaunchResult.Opened -> OpenCodeWebUiState(OpenCodeWebPhase.RUNNING)
+                is OpenCodeWebLaunchResult.Failed -> OpenCodeWebUiState(OpenCodeWebPhase.FAILED, result.code)
+            }
+            onFinished(result)
+        }
+    }
+
+    fun stopOpenCodeWeb() {
+        val preparation = opencodeWebJob
+        preparation?.cancel()
+        opencodeWebJob = viewModelScope.launch {
+            preparation?.join()
+            val distribution = LinuxEnvironmentSettingsRepository.current(getApplication())
+            val status = opencodeWebLauncher.status(distribution.terminalEnvironment)
+            val stopped = if (status.taskId == null) status.code == null
+                else opencodeWebLauncher.stop(distribution.terminalEnvironment)
+            opencodeWebState = if (stopped) OpenCodeWebUiState(OpenCodeWebPhase.READY)
+                else OpenCodeWebUiState(OpenCodeWebPhase.FAILED, status.code ?: "STOP_FAILED")
         }
     }
 }

@@ -155,6 +155,7 @@ fun AgentAppRoot(
             if (event == Lifecycle.Event.ON_RESUME) {
                 RootAccess.refresh(context)
                 appViewModel.refreshKimiWeb()
+                appViewModel.refreshOpenCodeWeb()
                 permissionHealth.refreshPermissionHealth()
                 agentState.refreshRuntimeResults()
             }
@@ -297,6 +298,26 @@ fun AgentAppRoot(
             canStopKimiWeb = appViewModel.kimiWebState.canStop,
             onStopKimiWeb = appViewModel::stopKimiWeb,
             onRefreshKimiWeb = appViewModel::refreshKimiWeb,
+            onLaunchOpenCodeWeb = {
+                requestExecutionNotifications()
+                if (appViewModel.opencodeWebState.phase != OpenCodeWebPhase.NOT_INSTALLED) {
+                    appViewModel.launchOpenCodeWeb { result ->
+                        if (result is OpenCodeWebLaunchResult.Failed) {
+                            Toast.makeText(
+                                context,
+                                result.message(context),
+                                Toast.LENGTH_LONG,
+                            ).show()
+                        }
+                    }
+                } else {
+                    pushRoute(AppRoute.LinuxEnvironment)
+                }
+            },
+            opencodeWebLabel = appViewModel.opencodeWebState.actionLabel(context),
+            canStopOpenCodeWeb = appViewModel.opencodeWebState.canStop,
+            onStopOpenCodeWeb = appViewModel::stopOpenCodeWeb,
+            onRefreshOpenCodeWeb = appViewModel::refreshOpenCodeWeb,
             onOpenBrowser = { pushRoute(AppRoute.Browser) },
             onSelectConversation = { conversationId -> selectConversation(conversationId) },
             onConversationRename = { conversation ->

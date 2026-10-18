@@ -43,6 +43,11 @@ internal data class LinuxPackageProfile(
     val specs: Map<LinuxDistribution, LinuxPackageSpec>,
     /** 安装前必须就绪的前置 profile。 */
     val dependsOn: LinuxPackageProfile? = null,
+    /**
+     * 安装脚本执行后、写完成标记前必须通过的自检命令；非零退出即视为安装失败。
+     * 用于确认 CLI 入口与关键子命令真实可用，未安装成功的包不会留下就绪标记。
+     */
+    val verifyCommand: String? = null,
 ) {
     fun spec(distribution: LinuxDistribution): LinuxPackageSpec = requireNotNull(specs[distribution])
 }
@@ -117,8 +122,31 @@ internal object LinuxPackageProfiles {
             LinuxDistribution.ALPINE to LinuxPackageSpec(setupScript = KIMI_INSTALL_SCRIPT),
             LinuxDistribution.DEBIAN to LinuxPackageSpec(setupScript = KIMI_INSTALL_SCRIPT),
         ),
+        verifyCommand = "kimi --version >/dev/null\nkimi web --help >/dev/null",
     )
-    val ALL = listOf(PYTHON, NODE, SSH, KIMI)
+
+    /**
+     * OpenCode 通过 npm 分发 `@opencode/cli`，同样运行在 Node profile 之上。
+     * 包内的 web UI 与配对能力只存在于 2.x 的 `@opencode/cli`；`opencode-ai` 只含 OpenCode 1，
+     * 没有 web UI，因此这里固定安装前者。国内镜像优先，官方 registry 兜底。
+     */
+    private const val OPENCODE_INSTALL_SCRIPT =
+        "npm install -g --prefix /usr/local --registry=https://registry.npmmirror.com " +
+            "@opencode/cli@latest || " +
+            "npm install -g --prefix /usr/local @opencode/cli@latest"
+
+    val OPENCODE = LinuxPackageProfile(
+        id = "opencode",
+        markerName = AlpineEnvironmentPaths.OPENCODE_TOOLS_MARKER,
+        revision = AlpineEnvironmentPaths.OPENCODE_TOOLS_REVISION,
+        dependsOn = NODE,
+        specs = mapOf(
+            LinuxDistribution.ALPINE to LinuxPackageSpec(setupScript = OPENCODE_INSTALL_SCRIPT),
+            LinuxDistribution.DEBIAN to LinuxPackageSpec(setupScript = OPENCODE_INSTALL_SCRIPT),
+        ),
+        verifyCommand = "opencode --version >/dev/null\nopencode serve --help >/dev/null",
+    )
+    val ALL = listOf(PYTHON, NODE, SSH, KIMI, OPENCODE)
 }
 
 internal fun linuxPackageProfileReady(rootfs: File, profile: LinuxPackageProfile): Boolean {
@@ -211,7 +239,7 @@ internal class LinuxPackageProfileInstaller(
         val activateCommand = buildString {
             append("set -e\n")
             spec.setupScript?.let { script -> append(script).append('\n') }
-            if (profile == LinuxPackageProfiles.KIMI) append("kimi --version >/dev/null\nkimi web --help >/dev/null\n")
+            profile.verifyCommand?.let { command -> append(command).append('\n') }
             append("cat > /").append(profile.markerName).append(" <<'ETA_PROFILE_EOF'\n")
             append("profile=").append(profile.revision).append('\n')
             append("ETA_PROFILE_EOF\n")

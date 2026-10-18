@@ -49,6 +49,8 @@ import io.github.mangi.eta.core.AndroidAgentLogger
 import io.github.mangi.eta.data.repository.LinuxEnvironmentSettingsRepository
 import io.github.mangi.eta.ui.app.KimiWebLaunchResult
 import io.github.mangi.eta.ui.app.KimiWebLauncher
+import io.github.mangi.eta.ui.app.OpenCodeWebLaunchResult
+import io.github.mangi.eta.ui.app.OpenCodeWebLauncher
 import io.github.mangi.eta.ui.app.launchForegroundExecution
 import io.github.mangi.eta.ui.app.message
 import io.github.mangi.eta.ui.app.rememberDeviceCapabilities
@@ -77,6 +79,7 @@ private enum class InstallTarget {
     NODE,
     SSH,
     KIMI,
+    OPENCODE,
 }
 
 private data class PackageProfileUi(
@@ -119,6 +122,13 @@ private val packageProfileUis = listOf(
         titleRes = R.string.linux_kimi_tools,
         summaryRes = R.string.linux_kimi_tools_summary,
         readyRes = R.string.linux_kimi_tools_ready,
+    ),
+    PackageProfileUi(
+        target = InstallTarget.OPENCODE,
+        profile = LinuxPackageProfiles.OPENCODE,
+        titleRes = R.string.linux_opencode_tools,
+        summaryRes = R.string.linux_opencode_tools_summary,
+        readyRes = R.string.linux_opencode_tools_ready,
     ),
 )
 
@@ -175,8 +185,25 @@ internal fun LinuxEnvironmentScreen(
     var apkAnalysisProgress by remember { mutableStateOf<ApkAnalysisInstallProgress?>(null) }
     var kimiWebLaunching by remember { mutableStateOf(false) }
     var kimiWebRunning by remember(selectedDistribution, backend) { mutableStateOf(false) }
+    var opencodeWebLaunching by remember { mutableStateOf(false) }
+    var opencodeWebRunning by remember(selectedDistribution, backend) { mutableStateOf(false) }
     val kimiWebLauncher = remember(appContext) {
         KimiWebLauncher(
+            context = appContext,
+            daemonSupervisor = DetachedTaskSupervisor(
+                logger = AndroidAgentLogger,
+                recordsFile = DetachedTaskSupervisor.defaultRecordsFile(appContext),
+                linuxRootfsPathProvider = { environment ->
+                    environment.linuxDistribution?.let { distribution ->
+                        LinuxEnvironmentPaths.rootfsDir(appContext, distribution).absolutePath
+                    }
+                },
+                linuxSharedMountsProvider = { SharedFolderMounts.current() },
+            ),
+        )
+    }
+    val opencodeWebLauncher = remember(appContext) {
+        OpenCodeWebLauncher(
             context = appContext,
             daemonSupervisor = DetachedTaskSupervisor(
                 logger = AndroidAgentLogger,
@@ -193,6 +220,11 @@ internal fun LinuxEnvironmentScreen(
     LaunchedEffect(selectedDistribution, backend, kimiWebLaunching) {
         if (!kimiWebLaunching) {
             kimiWebRunning = kimiWebLauncher.status(selectedDistribution.terminalEnvironment).running
+        }
+    }
+    LaunchedEffect(selectedDistribution, backend, opencodeWebLaunching) {
+        if (!opencodeWebLaunching) {
+            opencodeWebRunning = opencodeWebLauncher.status(selectedDistribution.terminalEnvironment).running
         }
     }
     val selectedBaseReady = when (selectedDistribution) {
@@ -292,6 +324,28 @@ internal fun LinuxEnvironmentScreen(
         }
     }
 
+    /** OpenCode 就绪后按钮变为启动 Web UI：守护任务常驻 serve，配对换链接后拉起浏览器。 */
+    fun launchOpenCodeWeb() {
+        if (opencodeWebLaunching || requiresRoot) return
+        requestExecutionNotifications()
+        opencodeWebLaunching = true
+        resultMessage = null
+        coroutineScope.launch {
+            val result = opencodeWebLauncher.launch(selectedDistribution.terminalEnvironment)
+            opencodeWebLaunching = false
+            if (result is OpenCodeWebLaunchResult.Failed) {
+                resultMessage = result.message(context)
+            }
+        }
+    }
+
+    val webLaunching = kimiWebLaunching || opencodeWebLaunching
+    val webStartingRes = when {
+        kimiWebLaunching -> R.string.linux_kimi_web_starting
+        opencodeWebLaunching -> R.string.linux_opencode_web_starting
+        else -> null
+    }
+
     MiuixScaffoldPage(
         title = stringResource(R.string.ui_linux_tool_environment_314d22),
         onBack = onBack,
@@ -315,7 +369,7 @@ internal fun LinuxEnvironmentScreen(
                 mode = backend.displayName(),
                 summary = when {
                     requiresRoot -> stringResource(R.string.capability_linux_root_lost)
-                    kimiWebLaunching -> stringResource(R.string.linux_kimi_web_starting)
+                    webStartingRes != null -> stringResource(webStartingRes)
                     busyTarget != null -> activeProgress ?: stringResource(R.string.linux_installing)
                     selectedToolsReady -> stringResource(R.string.linux_environment_tools_ready)
                     selectedBaseReady -> stringResource(R.string.linux_environment_base_ready)
@@ -327,7 +381,7 @@ internal fun LinuxEnvironmentScreen(
                         },
                     )
                 },
-                busy = busyTarget != null || kimiWebLaunching,
+                busy = busyTarget != null || webLaunching,
                 message = resultMessage,
                 actionText = when {
                     requiresRoot -> stringResource(R.string.capability_enhancements)
@@ -336,7 +390,7 @@ internal fun LinuxEnvironmentScreen(
                     selectedBaseReady -> stringResource(R.string.linux_install_base_tools)
                     else -> stringResource(R.string.linux_install_base)
                 },
-                actionEnabled = busyTarget == null && !kimiWebLaunching,
+                actionEnabled = busyTarget == null && !webLaunching,
                 onAction = {
                     if (requiresRoot) onNavigate(AppRoute.SystemEnhance)
                     else if (selectedBaseReady) installTools() else installBase()
@@ -349,15 +403,15 @@ internal fun LinuxEnvironmentScreen(
                 distribution = selectedDistribution,
                 backend = backend,
                 rootGranted = capabilities.root.isGranted,
-                enabled = busyTarget == null && !kimiWebLaunching,
+                enabled = busyTarget == null && !webLaunching,
                 onDistributionSelected = { distribution ->
-                    if (busyTarget == null && !kimiWebLaunching && distribution != selectedDistribution) {
+                    if (busyTarget == null && !webLaunching && distribution != selectedDistribution) {
                         resultMessage = null
                         coroutineScope.launch { LinuxEnvironmentSettingsRepository.select(distribution) }
                     }
                 },
                 onBackendSelected = { selectedBackend ->
-                    if (busyTarget == null && !kimiWebLaunching && selectedBackend != backend &&
+                    if (busyTarget == null && !webLaunching && selectedBackend != backend &&
                         (selectedBackend == LinuxExecutionBackend.PROOT || capabilities.root.isGranted)
                     ) {
                         resultMessage = null
@@ -410,6 +464,8 @@ internal fun LinuxEnvironmentScreen(
                     packageProfileUis.forEachIndexed { index, profileUi ->
                         val ready = profileReady[profileUi.target] == true
                         val isKimi = profileUi.target == InstallTarget.KIMI
+                        val isOpenCode = profileUi.target == InstallTarget.OPENCODE
+                        val isWebTool = isKimi || isOpenCode
                         val summaryRes = if (selectedDistribution == LinuxDistribution.DEBIAN) {
                             profileUi.debianSummaryRes
                         } else {
@@ -443,6 +499,18 @@ internal fun LinuxEnvironmentScreen(
                                         },
                                     )
                                 }
+                                if (isOpenCode && opencodeWebRunning) {
+                                    EtaTextButton(
+                                        text = stringResource(R.string.action_stop),
+                                        enabled = !opencodeWebLaunching && !requiresRoot,
+                                        onClick = {
+                                            coroutineScope.launch {
+                                                val stopped = opencodeWebLauncher.stop(selectedDistribution.terminalEnvironment)
+                                                opencodeWebRunning = !stopped
+                                            }
+                                        },
+                                    )
+                                }
                                 EtaTextButton(
                                     text = when {
                                         isKimi && ready -> stringResource(
@@ -454,18 +522,31 @@ internal fun LinuxEnvironmentScreen(
                                                 R.string.linux_kimi_web_launch
                                             },
                                         )
+                                        isOpenCode && ready -> stringResource(
+                                            if (opencodeWebLaunching) {
+                                                R.string.linux_opencode_web_starting
+                                            } else if (opencodeWebRunning) {
+                                                R.string.action_open
+                                            } else {
+                                                R.string.linux_opencode_web_launch
+                                            },
+                                        )
                                         ready -> stringResource(R.string.linux_installed)
                                         busyTarget == profileUi.target -> stringResource(R.string.linux_installing)
                                         else -> stringResource(R.string.linux_install)
                                     },
-                                    enabled = !requiresRoot && if (isKimi && ready) {
-                                        !kimiWebLaunching && busyTarget == null
+                                    enabled = !requiresRoot && if (isWebTool && ready) {
+                                        !(if (isKimi) kimiWebLaunching else opencodeWebLaunching) && busyTarget == null
                                     } else {
                                         busyTarget == null && !ready
                                     },
                                     onClick = {
                                         if (isKimi && ready) {
                                             launchKimiWeb()
+                                            return@EtaTextButton
+                                        }
+                                        if (isOpenCode && ready) {
+                                            launchOpenCodeWeb()
                                             return@EtaTextButton
                                         }
                                         if (busyTarget != null || ready) return@EtaTextButton

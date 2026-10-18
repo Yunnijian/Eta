@@ -84,6 +84,17 @@
     <string name="capability_kimi_not_installed">Install Kimi Code in the Linux environment first</string>
     <string name="capability_kimi_proot_unavailable">PRoot failed to start. Check or reinstall the standard environment from the Linux environment page.</string>
     <string name="capability_kimi_logs_unavailable">Cannot read Kimi startup logs. Check the environment in the terminal and try again.</string>
+    <string name="capability_opencode_checking">Checking OpenCode Web…</string>
+    <string name="capability_opencode_install">Install OpenCode Web</string>
+    <string name="capability_opencode_preparing">Preparing OpenCode Web…</string>
+    <string name="capability_opencode_open">Open OpenCode Web · Running</string>
+    <string name="capability_opencode_retry">OpenCode Web failed to start · Retry</string>
+    <string name="capability_opencode_stop">Stop OpenCode Web</string>
+    <string name="capability_opencode_root_required">This OpenCode environment requires Root. Restore authorization, or install a PRoot version in the Linux environment.</string>
+    <string name="capability_opencode_exited">OpenCode Web exited. Check its configuration in the terminal and try again.</string>
+    <string name="capability_opencode_not_installed">Install OpenCode in the Linux environment first</string>
+    <string name="capability_opencode_proot_unavailable">PRoot failed to start. Check or reinstall the standard environment from the Linux environment page.</string>
+    <string name="capability_opencode_logs_unavailable">Cannot read OpenCode startup logs. Check the environment in the terminal and try again.</string>
     <string name="capability_workspace_public_denied">Public directory access is not authorized. Retry authorization or import the files through Workspace and files.</string>
     <string name="capability_workspace_files">Workspace files</string>
     <string name="capability_workspace_empty_summary">Import files or generate them through terminal tasks</string>

@@ -21,6 +21,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ShortText
 import androidx.compose.material.icons.outlined.MoreHoriz
 import androidx.compose.material.icons.rounded.AddComment
+import androidx.compose.material.icons.rounded.Code
 import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.Stop
 import androidx.compose.material.icons.rounded.Terminal
@@ -92,6 +93,11 @@ internal fun AgentAppShell(
     canStopKimiWeb: Boolean,
     onStopKimiWeb: () -> Unit,
     onRefreshKimiWeb: () -> Unit,
+    onLaunchOpenCodeWeb: () -> Unit,
+    opencodeWebLabel: String,
+    canStopOpenCodeWeb: Boolean,
+    onStopOpenCodeWeb: () -> Unit,
+    onRefreshOpenCodeWeb: () -> Unit,
     onOpenBrowser: () -> Unit,
     onSelectConversation: (String) -> Unit,
     onConversationRename: (ConversationSummaryUi) -> Unit,
@@ -133,6 +139,11 @@ internal fun AgentAppShell(
                             canStopKimiWeb = canStopKimiWeb,
                             onStopKimiWeb = onStopKimiWeb,
                             onRefreshKimiWeb = onRefreshKimiWeb,
+                            onLaunchOpenCodeWeb = onLaunchOpenCodeWeb,
+                            opencodeWebLabel = opencodeWebLabel,
+                            canStopOpenCodeWeb = canStopOpenCodeWeb,
+                            onStopOpenCodeWeb = onStopOpenCodeWeb,
+                            onRefreshOpenCodeWeb = onRefreshOpenCodeWeb,
                             onOpenBrowser = onOpenBrowser,
                             homeCharacter = homeCharacter,
                             onOpenCharacter = onOpenCharacter,
@@ -194,6 +205,11 @@ private fun AgentTopBar(
     canStopKimiWeb: Boolean,
     onStopKimiWeb: () -> Unit,
     onRefreshKimiWeb: () -> Unit,
+    onLaunchOpenCodeWeb: () -> Unit,
+    opencodeWebLabel: String,
+    canStopOpenCodeWeb: Boolean,
+    onStopOpenCodeWeb: () -> Unit,
+    onRefreshOpenCodeWeb: () -> Unit,
     onOpenBrowser: () -> Unit,
     homeCharacter: RoleplayChatUi?,
     onOpenCharacter: () -> Unit,
@@ -229,6 +245,11 @@ private fun AgentTopBar(
                 canStopKimiWeb = canStopKimiWeb,
                 onStopKimiWeb = onStopKimiWeb,
                 onRefreshKimiWeb = onRefreshKimiWeb,
+                onLaunchOpenCodeWeb = onLaunchOpenCodeWeb,
+                opencodeWebLabel = opencodeWebLabel,
+                canStopOpenCodeWeb = canStopOpenCodeWeb,
+                onStopOpenCodeWeb = onStopOpenCodeWeb,
+                onRefreshOpenCodeWeb = onRefreshOpenCodeWeb,
                 onOpenBrowser = onOpenBrowser,
             )
         }
@@ -271,11 +292,16 @@ private fun TopBarOverflowMenu(
     canStopKimiWeb: Boolean,
     onStopKimiWeb: () -> Unit,
     onRefreshKimiWeb: () -> Unit,
+    onLaunchOpenCodeWeb: () -> Unit,
+    opencodeWebLabel: String,
+    canStopOpenCodeWeb: Boolean,
+    onStopOpenCodeWeb: () -> Unit,
+    onRefreshOpenCodeWeb: () -> Unit,
     onOpenBrowser: () -> Unit,
 ) {
     var showMenu by remember { mutableStateOf(false) }
     Box {
-        IconButton(onClick = { onRefreshKimiWeb(); showMenu = true }) {
+        IconButton(onClick = { onRefreshKimiWeb(); onRefreshOpenCodeWeb(); showMenu = true }) {
             Icon(
                 imageVector = Icons.Outlined.MoreHoriz,
                 modifier = Modifier.size(24.dp),
@@ -291,71 +317,119 @@ private fun TopBarOverflowMenu(
             val openTerminalText = stringResource(R.string.action_open_terminal)
             val launchKimiWebText = kimiWebLabel
             val stopKimiWebText = stringResource(R.string.capability_kimi_stop)
+            val launchOpenCodeWebText = opencodeWebLabel
+            val stopOpenCodeWebText = stringResource(R.string.capability_opencode_stop)
             val openBrowserText = stringResource(R.string.action_open_browser)
+            // 菜单项与动作按同一顺序构造，停止项按需出现，避免按下标硬编码分发。
+            val menuActions = buildList {
+                add(onNewConversation)
+                add(onOpenTerminal)
+                add(onLaunchKimiWeb)
+                add(onLaunchOpenCodeWeb)
+                add(onOpenBrowser)
+                if (canStopKimiWeb) add(onStopKimiWeb)
+                if (canStopOpenCodeWeb) add(onStopOpenCodeWeb)
+            }
             val menuItems = remember(
                 newConversationText,
                 openTerminalText,
                 launchKimiWebText,
+                launchOpenCodeWebText,
                 openBrowserText,
                 stopKimiWebText,
+                stopOpenCodeWebText,
                 canStopKimiWeb,
+                canStopOpenCodeWeb,
             ) {
-                listOf(
-                    DropdownItem(
-                        text = newConversationText,
-                        icon = { modifier ->
-                            Icon(
-                                imageVector = Icons.Rounded.AddComment,
-                                contentDescription = null,
-                                modifier = modifier.size(TopBarMenuIconSize),
-                            )
-                        },
-                    ),
-                    DropdownItem(
-                        text = openTerminalText,
-                        icon = { modifier ->
-                            Icon(
-                                imageVector = Icons.Rounded.Terminal,
-                                contentDescription = null,
-                                modifier = modifier.size(TopBarMenuIconSize),
-                            )
-                        },
-                    ),
-                    DropdownItem(
-                        text = launchKimiWebText,
-                        icon = { modifier ->
-                            Icon(
-                                painter = painterResource(R.drawable.ic_kimi_code),
-                                contentDescription = null,
-                                modifier = modifier.size(TopBarMenuIconSize),
-                            )
-                        },
-                    ),
-                    DropdownItem(
-                        text = openBrowserText,
-                        icon = { modifier ->
-                            Icon(
-                                imageVector = Icons.Rounded.Language,
-                                contentDescription = null,
-                                modifier = modifier.size(TopBarMenuIconSize),
-                            )
-                        },
-                    ),
-                ) + if (canStopKimiWeb) {
-                    listOf(
+                buildList {
+                    add(
                         DropdownItem(
-                            text = stopKimiWebText,
+                            text = newConversationText,
                             icon = { modifier ->
                                 Icon(
-                                    imageVector = Icons.Rounded.Stop,
+                                    imageVector = Icons.Rounded.AddComment,
                                     contentDescription = null,
                                     modifier = modifier.size(TopBarMenuIconSize),
                                 )
                             },
                         ),
                     )
-                } else {
-                    emptyList()
+                    add(
+                        DropdownItem(
+                            text = openTerminalText,
+                            icon = { modifier ->
+                                Icon(
+                                    imageVector = Icons.Rounded.Terminal,
+                                    contentDescription = null,
+                                    modifier = modifier.size(TopBarMenuIconSize),
+                                )
+                            },
+                        ),
+                    )
+                    add(
+                        DropdownItem(
+                            text = launchKimiWebText,
+                            icon = { modifier ->
+                                Icon(
+                                    painter = painterResource(R.drawable.ic_kimi_code),
+                                    contentDescription = null,
+                                    modifier = modifier.size(TopBarMenuIconSize),
+                                )
+                            },
+                        ),
+                    )
+                    add(
+                        DropdownItem(
+                            text = launchOpenCodeWebText,
+                            icon = { modifier ->
+                                Icon(
+                                    imageVector = Icons.Rounded.Code,
+                                    contentDescription = null,
+                                    modifier = modifier.size(TopBarMenuIconSize),
+                                )
+                            },
+                        ),
+                    )
+                    add(
+                        DropdownItem(
+                            text = openBrowserText,
+                            icon = { modifier ->
+                                Icon(
+                                    imageVector = Icons.Rounded.Language,
+                                    contentDescription = null,
+                                    modifier = modifier.size(TopBarMenuIconSize),
+                                )
+                            },
+                        ),
+                    )
+                    if (canStopKimiWeb) {
+                        add(
+                            DropdownItem(
+                                text = stopKimiWebText,
+                                icon = { modifier ->
+                                    Icon(
+                                        imageVector = Icons.Rounded.Stop,
+                                        contentDescription = null,
+                                        modifier = modifier.size(TopBarMenuIconSize),
+                                    )
+                                },
+                            ),
+                        )
+                    }
+                    if (canStopOpenCodeWeb) {
+                        add(
+                            DropdownItem(
+                                text = stopOpenCodeWebText,
+                                icon = { modifier ->
+                                    Icon(
+                                        imageVector = Icons.Rounded.Stop,
+                                        contentDescription = null,
+                                        modifier = modifier.size(TopBarMenuIconSize),
+                                    )
+                                },
+                            ),
+                        )
+                    }
                 }
             }
             ListPopupColumn {
@@ -367,13 +441,7 @@ private fun TopBarOverflowMenu(
                         index = index,
                         onSelectedIndexChange = {
                             showMenu = false
-                            when (index) {
-                                0 -> onNewConversation()
-                                1 -> onOpenTerminal()
-                                2 -> onLaunchKimiWeb()
-                                3 -> onOpenBrowser()
-                                4 -> onStopKimiWeb()
-                            }
+                            menuActions.getOrNull(index)?.invoke()
                         },
                     )
                 }
