@@ -189,3 +189,18 @@ Eta 不把下列工具打包进 APK。用户在 Linux 工具环境页面主动�
 | OpenCode（`@opencode/cli`） | [anomalyco/opencode](https://github.com/anomalyco/opencode) | MIT License |
 
 国内镜像优先，官方 registry 兜底；`registry.npmmirror.com` 等下载入口会获知用户的网络地址及所请求的公开包名，Eta 不向其发送账号、Cookie、API Key 或其他 Eta 数据。
+
+## 可选工具图标
+
+Linux 工具环境页面的可选工具行使用各自的品牌字形，转换为 VectorDrawable 后随 APK 分发，取自 [Simple Icons](https://github.com/simple-icons/simple-icons)：
+
+| Eta 资源 | Simple Icons 图标 | 着色 |
+| --- | --- | --- |
+| `ic_linux_python.xml` | `python` | Python 蓝 `#3776AB` |
+| `ic_linux_node.xml` | `nodedotjs` | Node.js 绿 `#5FA04E` |
+| `ic_linux_opencode.xml` | `opencode` | 跟随主题前景色 |
+| `ic_linux_apk_analysis.xml` | `openjdk` | 跟随主题前景色 |
+
+`ic_kimi_code.xml` 见上文「Kimi Code 图标」；SSH 行没有对应品牌字形，改用 Material Icons 的钥匙图标。
+
+Simple Icons 的图标数据采用 [CC0-1.0](https://github.com/simple-icons/simple-icons/blob/develop/LICENSE.md)，但各图标本身仍是对应项目的商标：Python（Python Software Foundation）、Node.js（OpenJS Foundation）、OpenCode（anomalyco）、OpenJDK（Oracle）。Eta 展示它们仅用于准确标识用户正在安装的工具，不表示这些项目对 Eta 的赞助、认可或合作关系；如需商标授权请直接联系对应权利人。

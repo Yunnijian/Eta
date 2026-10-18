@@ -1,5 +1,6 @@
 package io.github.mangi.eta.ui.components
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
@@ -13,8 +14,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import io.github.mangi.eta.ui.app.LocalAppearanceSettings
 import top.yukonga.miuix.kmp.basic.CardColors
@@ -91,6 +95,29 @@ internal fun EtaPreferenceIcon(
             contentDescription = null,
             modifier = Modifier.size(glyphSize),
             tint = if (enabled) tint else MiuixTheme.colorScheme.disabledOnSurface,
+        )
+    }
+}
+
+/**
+ * 品牌字形（VectorDrawable）版本；tint 传 `Color.Unspecified` 时保留画布自带颜色，
+ * 用于品牌自身有专色、不跟随主题的图标。
+ */
+@Composable
+internal fun EtaPreferenceIcon(
+    painter: Painter,
+    modifier: Modifier = Modifier,
+    tint: Color = MiuixTheme.colorScheme.onBackground,
+    enabled: Boolean = true,
+) {
+    val resolved = if (enabled) tint else MiuixTheme.colorScheme.disabledOnSurface
+    Box(modifier.size(EtaPreferenceDefaults.IconSize), contentAlignment = Alignment.Center) {
+        Image(
+            painter = painter,
+            contentDescription = null,
+            contentScale = ContentScale.Fit,
+            colorFilter = resolved.takeIf { it != Color.Unspecified }?.let(ColorFilter::tint),
+            modifier = Modifier.size(EtaPreferenceDefaults.IconSize),
         )
     }
 }

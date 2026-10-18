@@ -2,12 +2,14 @@ package io.github.mangi.eta.ui.screens.terminal
 
 import android.content.Context
 import android.text.format.Formatter
+import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Description
 import androidx.compose.material.icons.rounded.Folder
 import androidx.compose.material.icons.rounded.FolderOpen
+import androidx.compose.material.icons.rounded.VpnKey
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -17,6 +19,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import io.github.mangi.eta.R
 import io.github.mangi.eta.agent.terminal.AlpineEnvironmentInstaller
@@ -70,6 +75,7 @@ import io.github.mangi.eta.ui.navigation.AppRoute
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 private enum class InstallTarget {
     BASE,
@@ -90,6 +96,12 @@ private data class PackageProfileUi(
     @param:StringRes val readyRes: Int,
     @param:StringRes val debianSummaryRes: Int = summaryRes,
     @param:StringRes val debianReadyRes: Int = readyRes,
+    /** 品牌字形；与 [iconVector] 二选一，都没有则不显示前置图标。 */
+    @param:DrawableRes val iconRes: Int? = null,
+    /** 没有专属品牌字形时退回的 Material 图标。 */
+    val iconVector: ImageVector? = null,
+    /** 品牌自带专色的图标传 [Color.Unspecified]；null 表示跟随主题前景色。 */
+    val iconTint: Color? = null,
 )
 
 private val packageProfileUis = listOf(
@@ -101,6 +113,8 @@ private val packageProfileUis = listOf(
         readyRes = R.string.linux_python_tools_ready,
         debianSummaryRes = R.string.linux_python_tools_summary_debian,
         debianReadyRes = R.string.linux_python_tools_ready_debian,
+        iconRes = R.drawable.ic_linux_python,
+        iconTint = Color.Unspecified,
     ),
     PackageProfileUi(
         target = InstallTarget.NODE,
@@ -108,6 +122,8 @@ private val packageProfileUis = listOf(
         titleRes = R.string.linux_node_tools,
         summaryRes = R.string.linux_node_tools_summary,
         readyRes = R.string.linux_node_tools_ready,
+        iconRes = R.drawable.ic_linux_node,
+        iconTint = Color.Unspecified,
     ),
     PackageProfileUi(
         target = InstallTarget.SSH,
@@ -115,6 +131,7 @@ private val packageProfileUis = listOf(
         titleRes = R.string.linux_ssh_tools,
         summaryRes = R.string.linux_ssh_tools_summary,
         readyRes = R.string.linux_ssh_tools_ready,
+        iconVector = Icons.Rounded.VpnKey,
     ),
     PackageProfileUi(
         target = InstallTarget.KIMI,
@@ -122,6 +139,7 @@ private val packageProfileUis = listOf(
         titleRes = R.string.linux_kimi_tools,
         summaryRes = R.string.linux_kimi_tools_summary,
         readyRes = R.string.linux_kimi_tools_ready,
+        iconRes = R.drawable.ic_kimi_code,
     ),
     PackageProfileUi(
         target = InstallTarget.OPENCODE,
@@ -129,6 +147,7 @@ private val packageProfileUis = listOf(
         titleRes = R.string.linux_opencode_tools,
         summaryRes = R.string.linux_opencode_tools_summary,
         readyRes = R.string.linux_opencode_tools_ready,
+        iconRes = R.drawable.ic_linux_opencode,
     ),
 )
 
@@ -476,9 +495,26 @@ internal fun LinuxEnvironmentScreen(
                         } else {
                             profileUi.readyRes
                         }
-                        if (index > 0) EtaPreferenceDivider(hasLeading = false)
+                        // 每行前置品牌字形：有专色品牌直接上色，单色字形跟随主题前景色。
+                        val iconRes = profileUi.iconRes
+                        val iconVector = profileUi.iconVector
+                        val iconTint = profileUi.iconTint
+                        val startIcon: (@Composable () -> Unit)? = when {
+                            iconRes != null -> {
+                                {
+                                    EtaPreferenceIcon(
+                                        painter = painterResource(iconRes),
+                                        tint = iconTint ?: MiuixTheme.colorScheme.onBackground,
+                                    )
+                                }
+                            }
+                            iconVector != null -> { { EtaPreferenceIcon(iconVector) } }
+                            else -> null
+                        }
+                        if (index > 0) EtaPreferenceDivider(hasLeading = startIcon != null)
                         EtaPreference(
                             title = stringResource(profileUi.titleRes),
+                            startAction = startIcon,
                             summary = if (busyTarget == profileUi.target) {
                                 profileProgressSummary ?: stringResource(summaryRes)
                             } else if (ready) {
@@ -571,9 +607,12 @@ internal fun LinuxEnvironmentScreen(
                             },
                         )
                     }
-                    EtaPreferenceDivider(hasLeading = false)
+                    EtaPreferenceDivider(hasLeading = true)
                     EtaPreference(
                         title = stringResource(R.string.ui_apk_analysis_95ad17),
+                        startAction = {
+                            EtaPreferenceIcon(painter = painterResource(R.drawable.ic_linux_apk_analysis))
+                        },
                         summary = apkAnalysisProgress?.summary(context) ?: if (apkAnalysisReady) {
                             context.getString(R.string.linux_apk_tools_ready)
                         } else {
