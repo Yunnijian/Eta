@@ -23,7 +23,6 @@ import androidx.compose.material.icons.automirrored.rounded.VolumeOff
 import androidx.compose.material.icons.automirrored.rounded.VolumeUp
 import androidx.compose.material.icons.outlined.MoreHoriz
 import androidx.compose.material.icons.rounded.AddComment
-import androidx.compose.material.icons.rounded.Code
 import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.Stop
 import androidx.compose.material.icons.rounded.Terminal
@@ -407,7 +406,7 @@ private fun TopBarOverflowMenu(
                             text = launchOpenCodeWebText,
                             icon = { modifier ->
                                 Icon(
-                                    imageVector = Icons.Rounded.Code,
+                                    painter = painterResource(R.drawable.ic_linux_opencode),
                                     contentDescription = null,
                                     modifier = modifier.size(TopBarMenuIconSize),
                                 )
