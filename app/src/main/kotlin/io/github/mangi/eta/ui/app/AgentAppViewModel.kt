@@ -130,9 +130,9 @@ internal class AgentAppViewModel(application: Application) : AndroidViewModel(ap
                     OpenCodeWebUiState(OpenCodeWebPhase.NOT_INSTALLED)
                 } else {
                     val runtime = opencodeWebLauncher.status(distribution.terminalEnvironment)
+                    // 巡检发现进程已退出不等于启动失败；失败状态只保留主动操作的结果。
                     when {
                         runtime.running -> OpenCodeWebUiState(OpenCodeWebPhase.RUNNING)
-                        runtime.code != null -> OpenCodeWebUiState(OpenCodeWebPhase.FAILED, runtime.code)
                         opencodeWebState.phase == OpenCodeWebPhase.FAILED -> opencodeWebState
                         else -> OpenCodeWebUiState(OpenCodeWebPhase.READY)
                     }
