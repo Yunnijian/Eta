@@ -818,6 +818,16 @@
   <string name="tool_ui_network_status_6bd556">网络状态</string>
   <string name="tool_ui_web_page_interaction_331b3f">网页交互</string>
   <string name="tool_ui_watch_the_screen_e70f2a">观察屏幕</string>
+  <string name="tool_virtual_display">虚拟屏</string>
+  <string name="tool_virtual_display_description">创建、关闭虚拟屏，或在虚拟屏中列出并启动应用</string>
+  <string name="tool_virtual_observe">观察虚拟屏</string>
+  <string name="tool_virtual_observe_description">读取虚拟屏的节点树或截图</string>
+  <string name="tool_virtual_tap">虚拟屏点击</string>
+  <string name="tool_virtual_tap_description">按虚拟显示坐标点击</string>
+  <string name="tool_virtual_swipe">虚拟屏滑动</string>
+  <string name="tool_virtual_swipe_description">按虚拟显示坐标滑动</string>
+  <string name="tool_virtual_input">虚拟屏输入</string>
+  <string name="tool_virtual_input_description">向虚拟屏输入文本或按键</string>
   <string name="tool_ui_device_status_567a4c">设备状态</string>
   <string name="tool_ui_equipment_environment_1026ec">设备环境</string>
   <string name="tool_ui_set_timer_aee60c">设置计时器</string>

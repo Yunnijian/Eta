@@ -67,3 +67,8 @@
 -keep class io.github.mangi.eta.agent.phone.PhoneCommandMain {
     public static void main(java.lang.String[]);
 }
+
+# app_process 通过固定类名启动虚拟显示引擎入口。
+-keep class io.github.mangi.eta.agent.virtualscreen.backend.VirtualDisplayCommandMain {
+    public static void main(java.lang.String[]);
+}

@@ -1,0 +1,13 @@
+虚拟屏引擎来源
+================
+
+Source: https://github.com/lejw0925/android-virtual-screen
+Version: 0.2.0
+License: PolyForm Noncommercial License 1.0.0
+Full license: android-virtual-screen-PolyForm-Noncommercial-1.0.0.txt
+
+Eta 的 `agent/virtualscreen/backend` 下的虚拟显示、帧捕获、输入注入与旋转代码
+改编自上述项目；修改后的文件保留原许可，并标注 Modified from
+android-virtual-screen 0.2.0。
+
+Required Notice: Copyright © 2026 蛮吉 (Mangi-11).

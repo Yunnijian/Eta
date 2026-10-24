@@ -806,6 +806,16 @@
   <string name="tool_ui_network_status_6bd556">網路狀態</string>
   <string name="tool_ui_web_page_interaction_331b3f">網頁交互</string>
   <string name="tool_ui_watch_the_screen_e70f2a">觀察螢幕</string>
+  <string name="tool_virtual_display">虛擬螢幕</string>
+  <string name="tool_virtual_display_description">建立、關閉虛擬螢幕，或在虛擬螢幕中列出並啟動應用</string>
+  <string name="tool_virtual_observe">觀察虛擬螢幕</string>
+  <string name="tool_virtual_observe_description">讀取虛擬螢幕的節點樹或截圖</string>
+  <string name="tool_virtual_tap">虛擬螢幕點擊</string>
+  <string name="tool_virtual_tap_description">按虛擬顯示座標點擊</string>
+  <string name="tool_virtual_swipe">虛擬螢幕滑動</string>
+  <string name="tool_virtual_swipe_description">按虛擬顯示座標滑動</string>
+  <string name="tool_virtual_input">虛擬螢幕輸入</string>
+  <string name="tool_virtual_input_description">向虛擬螢幕輸入文字或按鍵</string>
   <string name="tool_ui_device_status_567a4c">裝置狀態</string>
   <string name="tool_ui_equipment_environment_1026ec">裝置環境</string>
   <string name="tool_ui_set_timer_aee60c">設定計時器</string>

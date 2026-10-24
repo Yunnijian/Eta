@@ -184,6 +184,12 @@ JADX 的发行包许可证会随所需 CLI 文件一并保留；Apktool、smali 
 
 GitHub 的实际制品域名不可达或较慢时，安装器可能通过 `gh-proxy.com` 请求同一个公开 Release URL；Node.js 制品可能先通过 `cdn.npmmirror.com` 请求。下载入口会获知用户的网络地址及所请求的公开制品；Eta 不向其发送账号、Cookie、API Key 或其他 Eta 数据，并在落盘前继续校验内置的官方制品大小与 SHA-256。不希望使用下载入口的用户可以不安装对应可选档案。
 
+## 虚拟屏引擎
+
+Eta 的 `agent/virtualscreen/backend` 中虚拟显示、帧捕获、输入注入与旋转代码改编自 [lejw0925/android-virtual-screen](https://github.com/lejw0925/android-virtual-screen) 0.2.0，沿用 PolyForm Noncommercial 1.0.0；修改后的文件标注 `Modified from android-virtual-screen 0.2.0`。许可全文与 Required Notice 随 APK 保存在 [`assets/licenses/android-virtual-screen-PolyForm-Noncommercial-1.0.0.txt`](../app/src/main/assets/licenses/android-virtual-screen-PolyForm-Noncommercial-1.0.0.txt) 与 [`assets/licenses/android-virtual-screen-NOTICE.txt`](../app/src/main/assets/licenses/android-virtual-screen-NOTICE.txt)。
+
+Required Notice: Copyright © 2026 蛮吉 (Mangi-11).
+
 ## 可选 Coding Agent
 
 Eta 不把下列工具打包进 APK。用户在 Linux 工具环境页面主动安装对应工具时，Eta 通过 npm 安装对应包（OpenCode 取最新正式版，DeepSeek Harness 锁定经过验证的预览版），制品只保存在用户当前选择的 Alpine 或 Debian 环境中，适用各自许可证；Eta 仅提供安装、命令入口与能力边界，不对这些工具重新授权。

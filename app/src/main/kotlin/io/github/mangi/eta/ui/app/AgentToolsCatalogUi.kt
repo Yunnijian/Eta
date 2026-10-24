@@ -19,6 +19,11 @@ internal fun buildToolsState(context: Context): AgentToolsUiState =
                     ToolItemUi("long_press", context.getString(R.string.tool_ui_long_press_f7a417), context.getString(R.string.tool_ui_long_press_on_coordinates_or_elements_796384)),
                     ToolItemUi("swipe", context.getString(R.string.tool_ui_slide_3723aa), context.getString(R.string.tool_ui_perform_up_down_left_and_right_swipe_gestures_3ef0de)),
                     ToolItemUi("scroll", context.getString(R.string.tool_ui_scroll_220e68), context.getString(R.string.tool_ui_scroll_the_page_or_specify_a_node_83ab24)),
+                    ToolItemUi("virtual_display", context.getString(R.string.tool_virtual_display), context.getString(R.string.tool_virtual_display_description)),
+                    ToolItemUi("virtual_observe", context.getString(R.string.tool_virtual_observe), context.getString(R.string.tool_virtual_observe_description)),
+                    ToolItemUi("virtual_tap", context.getString(R.string.tool_virtual_tap), context.getString(R.string.tool_virtual_tap_description)),
+                    ToolItemUi("virtual_swipe", context.getString(R.string.tool_virtual_swipe), context.getString(R.string.tool_virtual_swipe_description)),
+                    ToolItemUi("virtual_input", context.getString(R.string.tool_virtual_input), context.getString(R.string.tool_virtual_input_description)),
                 ),
             ),
             ToolGroupUi(

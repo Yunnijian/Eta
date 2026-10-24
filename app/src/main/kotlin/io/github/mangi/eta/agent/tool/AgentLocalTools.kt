@@ -13,6 +13,7 @@ import io.github.mangi.eta.agent.device.RootAccess
 import io.github.mangi.eta.agent.device.RootShellDeviceController
 import io.github.mangi.eta.agent.device.BoundedRootCommandExecutor
 import io.github.mangi.eta.agent.model.AgentModelClient
+import io.github.mangi.eta.agent.virtualscreen.VirtualScreenTools
 import io.github.mangi.eta.agent.model.AgentHttpClient
 import io.github.mangi.eta.agent.device.LocalNetworkPermission
 import io.github.mangi.eta.agent.web.AgentWebTools
@@ -104,6 +105,7 @@ internal class AgentLocalTools(
 
     private val closed = AtomicBoolean(false)
     private val deviceController = RootShellDeviceController(logger, screenshotExcludedPackages, rootAvailable)
+    private val virtualScreenTools = VirtualScreenTools(context)
     private val rootCommandExecutor = BoundedRootCommandExecutor(logger, rootAvailable = rootAvailable)
     private val structuredDeviceTools = AgentStructuredDeviceTools(
         context = context,
@@ -191,6 +193,7 @@ internal class AgentLocalTools(
                     else textResult(webTools.execute(toolCall.name, args))
                 }
                 "observe_screen" -> observeScreen(args)
+                in VirtualScreenTools.names -> virtualScreenTools.execute(toolCall.name, args)
                 "tap" -> afterAction(tap(args))
                 "tap_area" -> afterAction(tapArea(args))
                 "tap_element" -> afterAction(tapElement(args))

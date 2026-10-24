@@ -829,6 +829,16 @@
   <string name="tool_ui_network_status_6bd556">network status</string>
   <string name="tool_ui_web_page_interaction_331b3f">Web page interaction</string>
   <string name="tool_ui_watch_the_screen_e70f2a">Watch the screen</string>
+  <string name="tool_virtual_display">Virtual screen</string>
+  <string name="tool_virtual_display_description">Create or close a virtual screen, or list and launch apps inside it</string>
+  <string name="tool_virtual_observe">Observe virtual screen</string>
+  <string name="tool_virtual_observe_description">Read the virtual screen node tree or screenshot</string>
+  <string name="tool_virtual_tap">Virtual screen tap</string>
+  <string name="tool_virtual_tap_description">Tap virtual display coordinates</string>
+  <string name="tool_virtual_swipe">Virtual screen swipe</string>
+  <string name="tool_virtual_swipe_description">Swipe across virtual display coordinates</string>
+  <string name="tool_virtual_input">Virtual screen input</string>
+  <string name="tool_virtual_input_description">Type text or press keys on the virtual screen</string>
   <string name="tool_ui_device_status_567a4c">Device status</string>
   <string name="tool_ui_equipment_environment_1026ec">Equipment environment</string>
   <string name="tool_ui_set_timer_aee60c">Set timer</string>

@@ -58,6 +58,7 @@ internal object AgentToolRequirements {
             "search_downloads", "search_notes", "search_coloros_recordings",
             "search_recording_summaries", "search_system_memories", "search_saved_places",
             "search_qq_chat_images", "search_wechat_chat_images",
+            "virtual_display", "virtual_observe", "virtual_tap", "virtual_swipe", "virtual_input",
         )
         PersonalSearchTools.names.forEach { put(it, LocalToolRequirement(RootRequirement.REQUIRED, colorOs = true)) }
         AgentPhoneToolCatalog.entries.forEach { entry ->

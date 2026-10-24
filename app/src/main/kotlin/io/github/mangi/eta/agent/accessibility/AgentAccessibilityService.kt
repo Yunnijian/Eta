@@ -174,6 +174,69 @@ class AgentAccessibilityService : AccessibilityService() {
         }
     }
 
+    /**
+     * 读取指定虚拟显示的窗口节点。返回的是纯展示快照；虚拟屏输入由 Root 引擎注入，
+     * 不复用主屏的节点动作令牌。
+     */
+    fun captureVirtualScreenNodes(displayId: Int, maxNodes: Int): List<UiNode> = runOnMainSync {
+        val windows = runCatching { getWindowsOnAllDisplays()[displayId] }.getOrNull().orEmpty()
+            .filter { it.displayId == displayId }
+            .sortedWith(
+                compareByDescending<AccessibilityWindowInfo> {
+                    it.type == AccessibilityWindowInfo.TYPE_APPLICATION
+                }.thenByDescending { it.layer },
+            )
+        val roots = windows.mapNotNull { it.root }
+        if (roots.isEmpty()) return@runOnMainSync emptyList<UiNode>()
+        val nodeLimit = maxNodes.coerceIn(1, 120)
+        val indexedNodes = mutableListOf<IndexedNode>()
+        val traversal = NodeTraversalState(
+            maxVisitedNodes = (nodeLimit * UI_TREE_VISIT_MULTIPLIER)
+                .coerceIn(MIN_UI_TREE_VISITED_NODES, MAX_UI_TREE_VISITED_NODES),
+        )
+        for (root in roots) {
+            collectNodes(
+                node = root,
+                out = indexedNodes,
+                maxNodes = nodeLimit,
+                depth = 0,
+                traversal = traversal,
+            )
+        }
+        indexedNodes.map(IndexedNode::toUiNode)
+    } ?: emptyList()
+
+    /**
+     * 直接向虚拟屏输入框写入文本。Root 引擎不支持文本注入，这里走无障碍
+     * ACTION_SET_TEXT，支持中文且不依赖输入法。
+     * @return 写入后的完整文本；找不到输入框或动作失败时返回 null。
+     */
+    fun setVirtualScreenText(displayId: Int, text: String, replace: Boolean): String? = runOnMainSync {
+        val roots = runCatching { getWindowsOnAllDisplays()[displayId] }.getOrNull().orEmpty()
+            .filter { it.displayId == displayId }
+            .sortedWith(
+                compareByDescending<AccessibilityWindowInfo> {
+                    it.type == AccessibilityWindowInfo.TYPE_APPLICATION
+                }.thenByDescending { it.layer },
+            )
+            .mapNotNull { it.root }
+        if (roots.isEmpty()) return@runOnMainSync null
+        val target = roots.firstNotNullOfOrNull { root ->
+            findNode(root) { node -> node.isEditable && node.isFocused }
+        } ?: roots.firstNotNullOfOrNull { root ->
+            findNode(root) { node -> node.isEditable }
+        } ?: return@runOnMainSync null
+        val current = target.text?.toString().orEmpty()
+        val value = if (replace) text else current + text
+        val arguments = Bundle().apply {
+            putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE, value)
+        }
+        if (!target.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, arguments)) {
+            return@runOnMainSync null
+        }
+        value
+    }
+
     /** 临时查询不发布任何全局节点状态，适用于 wait_for_text。 */
     fun queryNodes(maxNodes: Int): List<UiNode> =
         captureNodeSnapshot(maxNodes)?.nodes.orEmpty()
