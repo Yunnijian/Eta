@@ -48,6 +48,8 @@ internal data class LinuxPackageProfile(
      * 用于确认 CLI 入口与关键子命令真实可用，未安装成功的包不会留下就绪标记。
      */
     val verifyCommand: String? = null,
+    /** 单次安装脚本的超时；依赖树较大的 npm 工具需要更长窗口。 */
+    val installTimeoutSeconds: Long = 600L,
 ) {
     fun spec(distribution: LinuxDistribution): LinuxPackageSpec = requireNotNull(specs[distribution])
 }
@@ -146,7 +148,35 @@ internal object LinuxPackageProfiles {
         ),
         verifyCommand = "opencode --version >/dev/null\nopencode serve --help >/dev/null",
     )
-    val ALL = listOf(PYTHON, NODE, SSH, KIMI, OPENCODE)
+
+    /**
+     * DeepSeek Harness 通过 npm 分发 `@deepseek-ai/dsh`，依赖树较大；锁定经过验证的预览版，
+     * 避免 rc 线接口漂移。`dsh web` 自带浏览器 UI 与一次性 token，运行时无需额外配对命令。
+     */
+    private val DSH_INSTALL_SCRIPT = """
+        npm install -g --prefix /usr/local --registry=https://registry.npmmirror.com --prefer-offline --no-audit --no-fund --fetch-retries=5 --fetch-retry-mintimeout=20000 --fetch-retry-maxtimeout=120000 @deepseek-ai/dsh@0.2.1-rc.2 || npm install -g --prefix /usr/local --prefer-offline --no-audit --no-fund @deepseek-ai/dsh@0.2.1-rc.2
+        f=/usr/local/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai/dsh-web-frontend/dist/index.html
+        [ -f "${'$'}f" ] || f=/usr/local/lib/node_modules/@deepseek-ai/dsh-web-frontend/dist/index.html
+        [ -f "${'$'}f" ] || { echo "dsh web frontend index.html not found" >&2; exit 1; }
+        if ! grep -q 'eta-dsh-mobile-settings' "${'$'}f"; then
+          sed -i 's#</head>#<style id="eta-dsh-mobile-settings">@media (max-width:640px){[data-shortcut-modal="settings"]{width:100vw!important;max-width:100vw!important;height:100dvh!important;border-radius:0!important;flex-direction:column!important}[data-shortcut-modal="settings"]>nav{width:100%!important;flex:none!important;flex-direction:row!important;align-items:center!important;gap:8px!important;padding:10px 12px!important;overflow-x:auto!important}[data-shortcut-modal="settings"]>nav>div:first-child{flex:none!important;padding:0!important}[data-shortcut-modal="settings"]>nav>div:last-child{flex-direction:row!important;overflow-x:auto!important;gap:4px!important}[data-shortcut-modal="settings"]>nav button{flex:none!important;width:auto!important;height:36px!important;padding:6px 10px!important}[data-shortcut-modal="settings"]>div{flex:1!important;min-width:0!important;min-height:0!important}[data-shortcut-modal="settings"]>div>div:last-child{padding:0 16px 16px!important}}</style></head>#' "${'$'}f"
+        fi
+    """.trimIndent()
+
+    val DSH = LinuxPackageProfile(
+        id = "dsh",
+        markerName = AlpineEnvironmentPaths.DSH_TOOLS_MARKER,
+        revision = AlpineEnvironmentPaths.DSH_TOOLS_REVISION,
+        dependsOn = NODE,
+        specs = mapOf(
+            LinuxDistribution.ALPINE to LinuxPackageSpec(setupScript = DSH_INSTALL_SCRIPT),
+            LinuxDistribution.DEBIAN to LinuxPackageSpec(setupScript = DSH_INSTALL_SCRIPT),
+        ),
+        verifyCommand = "dsh --version >/dev/null\ndsh web --help >/dev/null",
+        // 613 个 npm 包的冷安装明显长于其他工具，10 分钟窗口在移动网络下会误判失败。
+        installTimeoutSeconds = 1800L,
+    )
+    val ALL = listOf(PYTHON, NODE, SSH, KIMI, OPENCODE, DSH)
 }
 
 internal fun linuxPackageProfileReady(rootfs: File, profile: LinuxPackageProfile): Boolean {
@@ -225,7 +255,7 @@ internal class LinuxPackageProfileInstaller(
         if (spec.packages.isNotEmpty()) {
             val installResult = InstallerShellRunner.run(
                 command = "$packageHelper install ${spec.packages.joinToString(" ")}",
-                timeoutSeconds = INSTALL_TIMEOUT_SECONDS,
+                timeoutSeconds = profile.installTimeoutSeconds,
                 environment = distribution.terminalEnvironment,
                 linuxRootfsPath = rootfs.absolutePath,
             )
@@ -247,7 +277,7 @@ internal class LinuxPackageProfileInstaller(
         }
         val result = InstallerShellRunner.run(
             command = activateCommand,
-            timeoutSeconds = INSTALL_TIMEOUT_SECONDS,
+            timeoutSeconds = profile.installTimeoutSeconds,
             environment = distribution.terminalEnvironment,
             linuxRootfsPath = rootfs.absolutePath,
         )
@@ -265,7 +295,6 @@ internal class LinuxPackageProfileInstaller(
     }
 
     companion object {
-        private const val INSTALL_TIMEOUT_SECONDS = 600L
         private val installMutex = Mutex()
     }
 }

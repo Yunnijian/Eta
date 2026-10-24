@@ -52,6 +52,8 @@ import io.github.mangi.eta.agent.terminal.SharedFolderMounts
 import io.github.mangi.eta.agent.terminal.terminalEnvironment
 import io.github.mangi.eta.core.AndroidAgentLogger
 import io.github.mangi.eta.data.repository.LinuxEnvironmentSettingsRepository
+import io.github.mangi.eta.ui.app.DshWebLaunchResult
+import io.github.mangi.eta.ui.app.DshWebLauncher
 import io.github.mangi.eta.ui.app.KimiWebLaunchResult
 import io.github.mangi.eta.ui.app.KimiWebLauncher
 import io.github.mangi.eta.ui.app.OpenCodeWebLaunchResult
@@ -86,6 +88,7 @@ private enum class InstallTarget {
     SSH,
     KIMI,
     OPENCODE,
+    DSH,
 }
 
 private data class PackageProfileUi(
@@ -149,6 +152,14 @@ private val packageProfileUis = listOf(
         readyRes = R.string.linux_opencode_tools_ready,
         iconRes = R.drawable.ic_linux_opencode,
     ),
+    PackageProfileUi(
+        target = InstallTarget.DSH,
+        profile = LinuxPackageProfiles.DSH,
+        titleRes = R.string.linux_dsh_tools,
+        summaryRes = R.string.linux_dsh_tools_summary,
+        readyRes = R.string.linux_dsh_tools_ready,
+        iconRes = R.drawable.catalog_logo_deepseek,
+    ),
 )
 
 @Composable
@@ -206,6 +217,8 @@ internal fun LinuxEnvironmentScreen(
     var kimiWebRunning by remember(selectedDistribution, backend) { mutableStateOf(false) }
     var opencodeWebLaunching by remember { mutableStateOf(false) }
     var opencodeWebRunning by remember(selectedDistribution, backend) { mutableStateOf(false) }
+    var dshWebLaunching by remember { mutableStateOf(false) }
+    var dshWebRunning by remember(selectedDistribution, backend) { mutableStateOf(false) }
     val kimiWebLauncher = remember(appContext) {
         KimiWebLauncher(
             context = appContext,
@@ -236,6 +249,21 @@ internal fun LinuxEnvironmentScreen(
             ),
         )
     }
+    val dshWebLauncher = remember(appContext) {
+        DshWebLauncher(
+            context = appContext,
+            daemonSupervisor = DetachedTaskSupervisor(
+                logger = AndroidAgentLogger,
+                recordsFile = DetachedTaskSupervisor.defaultRecordsFile(appContext),
+                linuxRootfsPathProvider = { environment ->
+                    environment.linuxDistribution?.let { distribution ->
+                        LinuxEnvironmentPaths.rootfsDir(appContext, distribution).absolutePath
+                    }
+                },
+                linuxSharedMountsProvider = { SharedFolderMounts.current() },
+            ),
+        )
+    }
     LaunchedEffect(selectedDistribution, backend, kimiWebLaunching) {
         if (!kimiWebLaunching) {
             kimiWebRunning = kimiWebLauncher.status(selectedDistribution.terminalEnvironment).running
@@ -244,6 +272,11 @@ internal fun LinuxEnvironmentScreen(
     LaunchedEffect(selectedDistribution, backend, opencodeWebLaunching) {
         if (!opencodeWebLaunching) {
             opencodeWebRunning = opencodeWebLauncher.status(selectedDistribution.terminalEnvironment).running
+        }
+    }
+    LaunchedEffect(selectedDistribution, backend, dshWebLaunching) {
+        if (!dshWebLaunching) {
+            dshWebRunning = dshWebLauncher.status(selectedDistribution.terminalEnvironment).running
         }
     }
     val selectedBaseReady = when (selectedDistribution) {
@@ -358,10 +391,26 @@ internal fun LinuxEnvironmentScreen(
         }
     }
 
-    val webLaunching = kimiWebLaunching || opencodeWebLaunching
+    /** DeepSeek Harness 就绪后按钮变为启动 Web UI：守护任务常驻 dsh web，抓到带 token 地址后拉起浏览器。 */
+    fun launchDshWeb() {
+        if (dshWebLaunching || requiresRoot) return
+        requestExecutionNotifications()
+        dshWebLaunching = true
+        resultMessage = null
+        coroutineScope.launch {
+            val result = dshWebLauncher.launch(selectedDistribution.terminalEnvironment)
+            dshWebLaunching = false
+            if (result is DshWebLaunchResult.Failed) {
+                resultMessage = result.message(context)
+            }
+        }
+    }
+
+    val webLaunching = kimiWebLaunching || opencodeWebLaunching || dshWebLaunching
     val webStartingRes = when {
         kimiWebLaunching -> R.string.linux_kimi_web_starting
         opencodeWebLaunching -> R.string.linux_opencode_web_starting
+        dshWebLaunching -> R.string.linux_dsh_web_starting
         else -> null
     }
 
@@ -484,7 +533,8 @@ internal fun LinuxEnvironmentScreen(
                         val ready = profileReady[profileUi.target] == true
                         val isKimi = profileUi.target == InstallTarget.KIMI
                         val isOpenCode = profileUi.target == InstallTarget.OPENCODE
-                        val isWebTool = isKimi || isOpenCode
+                        val isDsh = profileUi.target == InstallTarget.DSH
+                        val isWebTool = isKimi || isOpenCode || isDsh
                         val summaryRes = if (selectedDistribution == LinuxDistribution.DEBIAN) {
                             profileUi.debianSummaryRes
                         } else {
@@ -547,6 +597,18 @@ internal fun LinuxEnvironmentScreen(
                                         },
                                     )
                                 }
+                                if (isDsh && dshWebRunning) {
+                                    EtaTextButton(
+                                        text = stringResource(R.string.action_stop),
+                                        enabled = !dshWebLaunching && !requiresRoot,
+                                        onClick = {
+                                            coroutineScope.launch {
+                                                val stopped = dshWebLauncher.stop(selectedDistribution.terminalEnvironment)
+                                                dshWebRunning = !stopped
+                                            }
+                                        },
+                                    )
+                                }
                                 EtaTextButton(
                                     text = when {
                                         isKimi && ready -> stringResource(
@@ -567,12 +629,25 @@ internal fun LinuxEnvironmentScreen(
                                                 R.string.linux_opencode_web_launch
                                             },
                                         )
+                                        isDsh && ready -> stringResource(
+                                            if (dshWebLaunching) {
+                                                R.string.linux_dsh_web_starting
+                                            } else if (dshWebRunning) {
+                                                R.string.action_open
+                                            } else {
+                                                R.string.linux_dsh_web_launch
+                                            },
+                                        )
                                         ready -> stringResource(R.string.linux_installed)
                                         busyTarget == profileUi.target -> stringResource(R.string.linux_installing)
                                         else -> stringResource(R.string.linux_install)
                                     },
                                     enabled = !requiresRoot && if (isWebTool && ready) {
-                                        !(if (isKimi) kimiWebLaunching else opencodeWebLaunching) && busyTarget == null
+                                        !(when {
+                                            isKimi -> kimiWebLaunching
+                                            isOpenCode -> opencodeWebLaunching
+                                            else -> dshWebLaunching
+                                        }) && busyTarget == null
                                     } else {
                                         busyTarget == null && !ready
                                     },
@@ -583,6 +658,10 @@ internal fun LinuxEnvironmentScreen(
                                         }
                                         if (isOpenCode && ready) {
                                             launchOpenCodeWeb()
+                                            return@EtaTextButton
+                                        }
+                                        if (isDsh && ready) {
+                                            launchDshWeb()
                                             return@EtaTextButton
                                         }
                                         if (busyTarget != null || ready) return@EtaTextButton

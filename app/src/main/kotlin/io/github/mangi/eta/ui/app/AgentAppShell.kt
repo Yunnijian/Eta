@@ -103,6 +103,11 @@ internal fun AgentAppShell(
     canStopOpenCodeWeb: Boolean,
     onStopOpenCodeWeb: () -> Unit,
     onRefreshOpenCodeWeb: () -> Unit,
+    onLaunchDshWeb: () -> Unit,
+    dshWebLabel: String,
+    canStopDshWeb: Boolean,
+    onStopDshWeb: () -> Unit,
+    onRefreshDshWeb: () -> Unit,
     onOpenBrowser: () -> Unit,
     onSelectConversation: (String) -> Unit,
     onConversationRename: (ConversationSummaryUi) -> Unit,
@@ -149,6 +154,11 @@ internal fun AgentAppShell(
                             canStopOpenCodeWeb = canStopOpenCodeWeb,
                             onStopOpenCodeWeb = onStopOpenCodeWeb,
                             onRefreshOpenCodeWeb = onRefreshOpenCodeWeb,
+                            onLaunchDshWeb = onLaunchDshWeb,
+                            dshWebLabel = dshWebLabel,
+                            canStopDshWeb = canStopDshWeb,
+                            onStopDshWeb = onStopDshWeb,
+                            onRefreshDshWeb = onRefreshDshWeb,
                             onOpenBrowser = onOpenBrowser,
                             homeCharacter = homeCharacter,
                             onOpenCharacter = onOpenCharacter,
@@ -215,6 +225,11 @@ private fun AgentTopBar(
     canStopOpenCodeWeb: Boolean,
     onStopOpenCodeWeb: () -> Unit,
     onRefreshOpenCodeWeb: () -> Unit,
+    onLaunchDshWeb: () -> Unit,
+    dshWebLabel: String,
+    canStopDshWeb: Boolean,
+    onStopDshWeb: () -> Unit,
+    onRefreshDshWeb: () -> Unit,
     onOpenBrowser: () -> Unit,
     homeCharacter: RoleplayChatUi?,
     onOpenCharacter: () -> Unit,
@@ -254,6 +269,11 @@ private fun AgentTopBar(
                 canStopOpenCodeWeb = canStopOpenCodeWeb,
                 onStopOpenCodeWeb = onStopOpenCodeWeb,
                 onRefreshOpenCodeWeb = onRefreshOpenCodeWeb,
+                onLaunchDshWeb = onLaunchDshWeb,
+                dshWebLabel = dshWebLabel,
+                canStopDshWeb = canStopDshWeb,
+                onStopDshWeb = onStopDshWeb,
+                onRefreshDshWeb = onRefreshDshWeb,
                 onOpenBrowser = onOpenBrowser,
             )
         }
@@ -301,6 +321,11 @@ private fun TopBarOverflowMenu(
     canStopOpenCodeWeb: Boolean,
     onStopOpenCodeWeb: () -> Unit,
     onRefreshOpenCodeWeb: () -> Unit,
+    onLaunchDshWeb: () -> Unit,
+    dshWebLabel: String,
+    canStopDshWeb: Boolean,
+    onStopDshWeb: () -> Unit,
+    onRefreshDshWeb: () -> Unit,
     onOpenBrowser: () -> Unit,
 ) {
     var showMenu by remember { mutableStateOf(false) }
@@ -309,7 +334,7 @@ private fun TopBarOverflowMenu(
     val hasSpeechPlayback = speechSettings?.let { it.tts != TtsProvider.NONE } == true
     val autoReadEnabled = speechSettings?.chatAutoSpeak == true
     Box {
-        IconButton(onClick = { onRefreshKimiWeb(); onRefreshOpenCodeWeb(); showMenu = true }) {
+        IconButton(onClick = { onRefreshKimiWeb(); onRefreshOpenCodeWeb(); onRefreshDshWeb(); showMenu = true }) {
             Icon(
                 imageVector = Icons.Outlined.MoreHoriz,
                 modifier = Modifier.size(24.dp),
@@ -327,6 +352,8 @@ private fun TopBarOverflowMenu(
             val stopKimiWebText = stringResource(R.string.capability_kimi_stop)
             val launchOpenCodeWebText = opencodeWebLabel
             val stopOpenCodeWebText = stringResource(R.string.capability_opencode_stop)
+            val launchDshWebText = dshWebLabel
+            val stopDshWebText = stringResource(R.string.capability_dsh_stop)
             val openBrowserText = stringResource(R.string.action_open_browser)
             val autoReadText = stringResource(
                 if (autoReadEnabled) R.string.speech_disable_auto_read else R.string.speech_enable_auto_read,
@@ -337,9 +364,11 @@ private fun TopBarOverflowMenu(
                 add(onOpenTerminal)
                 add(onLaunchKimiWeb)
                 add(onLaunchOpenCodeWeb)
+                add(onLaunchDshWeb)
                 add(onOpenBrowser)
                 if (canStopKimiWeb) add(onStopKimiWeb)
                 if (canStopOpenCodeWeb) add(onStopOpenCodeWeb)
+                if (canStopDshWeb) add(onStopDshWeb)
                 if (hasSpeechPlayback) {
                     add {
                         speechSettings?.let { current ->
@@ -355,11 +384,14 @@ private fun TopBarOverflowMenu(
                 openTerminalText,
                 launchKimiWebText,
                 launchOpenCodeWebText,
+                launchDshWebText,
                 openBrowserText,
                 stopKimiWebText,
                 stopOpenCodeWebText,
+                stopDshWebText,
                 canStopKimiWeb,
                 canStopOpenCodeWeb,
+                canStopDshWeb,
                 autoReadText,
                 hasSpeechPlayback,
                 autoReadEnabled,
@@ -415,6 +447,18 @@ private fun TopBarOverflowMenu(
                     )
                     add(
                         DropdownItem(
+                            text = launchDshWebText,
+                            icon = { modifier ->
+                                Icon(
+                                    painter = painterResource(R.drawable.catalog_logo_deepseek),
+                                    contentDescription = null,
+                                    modifier = modifier.size(TopBarMenuIconSize),
+                                )
+                            },
+                        ),
+                    )
+                    add(
+                        DropdownItem(
                             text = openBrowserText,
                             icon = { modifier ->
                                 Icon(
@@ -443,6 +487,20 @@ private fun TopBarOverflowMenu(
                         add(
                             DropdownItem(
                                 text = stopOpenCodeWebText,
+                                icon = { modifier ->
+                                    Icon(
+                                        imageVector = Icons.Rounded.Stop,
+                                        contentDescription = null,
+                                        modifier = modifier.size(TopBarMenuIconSize),
+                                    )
+                                },
+                            ),
+                        )
+                    }
+                    if (canStopDshWeb) {
+                        add(
+                            DropdownItem(
+                                text = stopDshWebText,
                                 icon = { modifier ->
                                     Icon(
                                         imageVector = Icons.Rounded.Stop,

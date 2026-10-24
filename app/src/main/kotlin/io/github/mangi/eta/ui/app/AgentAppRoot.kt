@@ -168,6 +168,7 @@ fun AgentAppRoot(
                 RootAccess.refresh(context)
                 appViewModel.refreshKimiWeb()
                 appViewModel.refreshOpenCodeWeb()
+                appViewModel.refreshDshWeb()
                 permissionHealth.refreshPermissionHealth()
                 agentState.refreshRuntimeResults()
             }
@@ -330,6 +331,26 @@ fun AgentAppRoot(
             canStopOpenCodeWeb = appViewModel.opencodeWebState.canStop,
             onStopOpenCodeWeb = appViewModel::stopOpenCodeWeb,
             onRefreshOpenCodeWeb = appViewModel::refreshOpenCodeWeb,
+            onLaunchDshWeb = {
+                requestExecutionNotifications()
+                if (appViewModel.dshWebState.phase != DshWebPhase.NOT_INSTALLED) {
+                    appViewModel.launchDshWeb { result ->
+                        if (result is DshWebLaunchResult.Failed) {
+                            Toast.makeText(
+                                context,
+                                result.message(context),
+                                Toast.LENGTH_LONG,
+                            ).show()
+                        }
+                    }
+                } else {
+                    pushRoute(AppRoute.LinuxEnvironment)
+                }
+            },
+            dshWebLabel = appViewModel.dshWebState.actionLabel(context),
+            canStopDshWeb = appViewModel.dshWebState.canStop,
+            onStopDshWeb = appViewModel::stopDshWeb,
+            onRefreshDshWeb = appViewModel::refreshDshWeb,
             onOpenBrowser = { pushRoute(AppRoute.Browser) },
             onSelectConversation = { conversationId -> selectConversation(conversationId) },
             onConversationRename = { conversation ->

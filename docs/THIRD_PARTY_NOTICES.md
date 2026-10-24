@@ -186,13 +186,16 @@ GitHub 的实际制品域名不可达或较慢时，安装器可能通过 `gh-pr
 
 ## 可选 Coding Agent
 
-Eta 不把下列工具打包进 APK。用户在 Linux 工具环境页面主动安装对应工具时，Eta 通过 npm 安装最新正式版，制品只保存在用户当前选择的 Alpine 或 Debian 环境中，适用各自许可证；Eta 仅提供安装、命令入口与能力边界，不对这些工具重新授权。
+Eta 不把下列工具打包进 APK。用户在 Linux 工具环境页面主动安装对应工具时，Eta 通过 npm 安装对应包（OpenCode 取最新正式版，DeepSeek Harness 锁定经过验证的预览版），制品只保存在用户当前选择的 Alpine 或 Debian 环境中，适用各自许可证；Eta 仅提供安装、命令入口与能力边界，不对这些工具重新授权。
 
 | 工具 | 来源 | 许可证 |
 | --- | --- | --- |
 | OpenCode（`@opencode/cli`） | [anomalyco/opencode](https://github.com/anomalyco/opencode) | MIT License |
+| DeepSeek Harness（`@deepseek-ai/dsh`） | [deepseek-ai/deepseek-harness](https://github.com/deepseek-ai/deepseek-harness) | MIT License |
 
 国内镜像优先，官方 registry 兜底；`registry.npmmirror.com` 等下载入口会获知用户的网络地址及所请求的公开包名，Eta 不向其发送账号、Cookie、API Key 或其他 Eta 数据。
+
+DeepSeek Harness 安装完成后，Eta 会向本机已落盘的 `dsh-web-frontend/dist/index.html` 注入一段仅在 640px 以下生效的覆盖样式，用于修正上游设置弹窗在手机宽度下内容被挤成竖排的显示问题。该操作只修改用户设备上的已安装副本，不随 APK 分发第三方前端代码；dsh 重新安装或升级后由安装脚本重新注入。
 
 ## 可选工具图标
 
@@ -205,6 +208,6 @@ Linux 工具环境页面的可选工具行使用各自的品牌字形，转换�
 | `ic_linux_opencode.xml` | `opencode` | 跟随主题前景色 |
 | `ic_linux_apk_analysis.xml` | `openjdk` | 跟随主题前景色 |
 
-`ic_kimi_code.xml` 见上文「Kimi Code 图标」；SSH 行没有对应品牌字形，改用 Material Icons 的钥匙图标。
+`ic_kimi_code.xml` 见上文「Kimi Code 图标」；SSH 行没有对应品牌字形，改用 Material Icons 的钥匙图标。DeepSeek Harness 行复用 models.dev 目录中的 DeepSeek 提供商图标 `catalog_logo_deepseek.xml`（见上文「models.dev 模型目录」），商标归 DeepSeek 所有。
 
 Simple Icons 的图标数据采用 [CC0-1.0](https://github.com/simple-icons/simple-icons/blob/develop/LICENSE.md)，但各图标本身仍是对应项目的商标：Python（Python Software Foundation）、Node.js（OpenJS Foundation）、OpenCode（anomalyco）、OpenJDK（Oracle）。Eta 展示它们仅用于准确标识用户正在安装的工具，不表示这些项目对 Eta 的赞助、认可或合作关系；如需商标授权请直接联系对应权利人。

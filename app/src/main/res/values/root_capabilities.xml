@@ -95,6 +95,17 @@
     <string name="capability_opencode_not_installed">Install OpenCode in the Linux environment first</string>
     <string name="capability_opencode_proot_unavailable">PRoot failed to start. Check or reinstall the standard environment from the Linux environment page.</string>
     <string name="capability_opencode_logs_unavailable">Cannot read OpenCode startup logs. Check the environment in the terminal and try again.</string>
+    <string name="capability_dsh_checking">Checking DeepSeek Harness Web…</string>
+    <string name="capability_dsh_install">Install DeepSeek Harness Web</string>
+    <string name="capability_dsh_preparing">Preparing DeepSeek Harness Web…</string>
+    <string name="capability_dsh_open">Open DeepSeek Harness Web · Running</string>
+    <string name="capability_dsh_retry">DeepSeek Harness Web failed to start · Retry</string>
+    <string name="capability_dsh_stop">Stop DeepSeek Harness Web</string>
+    <string name="capability_dsh_root_required">This DeepSeek Harness environment requires Root. Restore authorization, or install a PRoot version in the Linux environment.</string>
+    <string name="capability_dsh_exited">DeepSeek Harness Web exited. Check the dsh configuration in the terminal and try again.</string>
+    <string name="capability_dsh_not_installed">Install DeepSeek Harness in the Linux environment first</string>
+    <string name="capability_dsh_proot_unavailable">PRoot failed to start. Check or reinstall the standard environment from the Linux environment page.</string>
+    <string name="capability_dsh_logs_unavailable">Cannot read DeepSeek Harness startup logs. Check the environment in the terminal and try again.</string>
     <string name="capability_workspace_public_denied">Public directory access is not authorized. Retry authorization or import the files through Workspace and files.</string>
     <string name="capability_workspace_files">Workspace files</string>
     <string name="capability_workspace_empty_summary">Import files or generate them through terminal tasks</string>

@@ -40,6 +40,7 @@
   <string name="action_open_browser">打开浏览器</string>
   <string name="action_launch_kimi_web">启动 Kimi Web</string>
   <string name="action_launch_opencode_web">启动 OpenCode Web</string>
+  <string name="action_launch_dsh_web">启动 DeepSeek Harness Web</string>
   <string name="route_browser">Agent 浏览器</string>
   <string name="route_tools">工具能力</string>
   <string name="route_permissions">权限</string>
@@ -1002,6 +1003,9 @@
   <string name="linux_opencode_tools">OpenCode</string>
   <string name="linux_opencode_tools_summary">通过 npm 安装最新正式版 @opencode/cli；需要先安装 Node.js 环境</string>
   <string name="linux_opencode_tools_ready">OpenCode 已就绪，在终端运行 opencode 即可开始</string>
+  <string name="linux_dsh_tools">DeepSeek Harness</string>
+  <string name="linux_dsh_tools_summary">通过 npm 安装 @deepseek-ai/dsh 0.2.1-rc.2（预览版）；需要先安装 Node.js 环境</string>
+  <string name="linux_dsh_tools_ready">DeepSeek Harness 已就绪，在终端运行 dsh 即可开始</string>
   <string name="linux_profile_dependency_missing">需要先安装 %1$s</string>
   <string name="linux_kimi_web_launch">启动 Web UI</string>
   <string name="linux_kimi_web_starting">正在启动…</string>
@@ -1014,6 +1018,11 @@
   <string name="linux_opencode_web_failed_url">未获取到 Web UI 地址，请到后台任务查看日志</string>
   <string name="linux_opencode_web_failed_pair">未能获取 OpenCode 配对链接，请重试</string>
   <string name="linux_opencode_web_failed_browser">没有可用的浏览器</string>
+  <string name="linux_dsh_web_launch">启动 Web UI</string>
+  <string name="linux_dsh_web_starting">正在启动…</string>
+  <string name="linux_dsh_web_failed_start">DeepSeek Harness Web 启动失败</string>
+  <string name="linux_dsh_web_failed_url">未获取到 Web UI 地址，请到后台任务查看日志</string>
+  <string name="linux_dsh_web_failed_browser">没有可用的浏览器</string>
   <string name="linux_profile_stage_checking">检查 Linux 基础环境</string>
   <string name="linux_profile_stage_downloading">下载%1$s</string>
   <string name="linux_profile_stage_downloading_percent">下载%1$s · %2$d%%</string>
