@@ -12,6 +12,7 @@ import io.github.mangi.eta.agent.device.DeviceControlUnavailableException
 import io.github.mangi.eta.agent.device.RootAccess
 import io.github.mangi.eta.agent.device.RootShellDeviceController
 import io.github.mangi.eta.agent.device.BoundedRootCommandExecutor
+import io.github.mangi.eta.agent.media.ToolDisplayImageStore
 import io.github.mangi.eta.agent.model.AgentModelClient
 import io.github.mangi.eta.agent.virtualscreen.VirtualScreenTools
 import io.github.mangi.eta.agent.model.AgentHttpClient
@@ -106,6 +107,7 @@ internal class AgentLocalTools(
     private val closed = AtomicBoolean(false)
     private val deviceController = RootShellDeviceController(logger, screenshotExcludedPackages, rootAvailable)
     private val virtualScreenTools = VirtualScreenTools(context)
+    private val toolImageStore = ToolDisplayImageStore(context)
     private val rootCommandExecutor = BoundedRootCommandExecutor(logger, rootAvailable = rootAvailable)
     private val structuredDeviceTools = AgentStructuredDeviceTools(
         context = context,
@@ -251,10 +253,15 @@ internal class AgentLocalTools(
                 )
             )
         }.let { result ->
-            if (result.sensitive || !AgentSensitiveToolPolicy.isSensitive(toolCall.name)) {
+            val normalized = if (result.sensitive || !AgentSensitiveToolPolicy.isSensitive(toolCall.name)) {
                 result
             } else {
                 result.copy(sensitive = true)
+            }
+            if (normalized.sensitive || normalized.images.isEmpty()) {
+                normalized
+            } else {
+                normalized.copy(displayImagePaths = toolImageStore.materialize(normalized.images))
             }
         }
 

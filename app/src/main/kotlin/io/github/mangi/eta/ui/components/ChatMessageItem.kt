@@ -311,6 +311,7 @@ private fun UserMessageBubble(
     val visiblePrompt = remember(message.content) {
         AgentFileReferencePromptCodec.parse(message.content)
     }
+    var imagePreviewSource by remember(message.id) { mutableStateOf<String?>(null) }
     val overlayBubbleColor = if (MiuixTheme.colorScheme.background.luminance() < 0.5f) {
         Color(0xFF37393D)
     } else {
@@ -412,7 +413,8 @@ private fun UserMessageBubble(
                                     contentDescription = stringResource(R.string.chat_image_attachment),
                                     modifier = Modifier
                                         .size(100.dp)
-                                        .clip(RoundedCornerShape(12.dp)),
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .clickable { imagePreviewSource = dataUrl },
                                     contentScale = ContentScale.Crop,
                                 )
                             }
@@ -446,6 +448,9 @@ private fun UserMessageBubble(
                 }
             }
         }
+    }
+    imagePreviewSource?.let { source ->
+        ChatImagePreviewDialog(source = source, onDismiss = { imagePreviewSource = null })
     }
 }
 

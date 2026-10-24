@@ -742,6 +742,9 @@ internal object AgentRuntimeWire {
                 putInt("image_count", event.imageCount)
                 putInt("image_bytes", event.imageBytes)
                 event.success?.let { putBoolean("success", it) }
+                if (event.imagePaths.isNotEmpty()) {
+                    putStringArrayList("image_paths", ArrayList(event.imagePaths))
+                }
             }
 
             is AgentEvent.HostedToolStarted -> {
@@ -884,6 +887,8 @@ internal object AgentRuntimeWire {
             imageBytes = bundle.getInt("image_bytes"),
             // 旧版本 Runtime 不发送 success，缺省为 null 由消费端回退判断
             success = if (bundle.containsKey("success")) bundle.getBoolean("success") else null,
+            // 旧版本 Runtime 不发送展示路径，缺省为空
+            imagePaths = bundle.getStringArrayList("image_paths").orEmpty(),
         )
 
         "hosted_tool_started" -> AgentEvent.HostedToolStarted(

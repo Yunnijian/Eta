@@ -671,6 +671,7 @@ class AgentRuntimeWireTest {
                 imageCount = 1,
                 imageBytes = 2048,
                 success = true,
+                imagePaths = listOf("/data/user/0/io.github.mangi.eta.debug/cache/tool-images/a.jpg"),
             ),
             // 旧版本 Runtime 不发送 success 字段，缺省事件也必须完整往返
             AgentEvent.ToolFinished(

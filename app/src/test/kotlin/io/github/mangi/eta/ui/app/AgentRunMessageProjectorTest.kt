@@ -43,6 +43,34 @@ class AgentRunMessageProjectorTest {
     }
 
     @Test
+    fun finishToolCarriesDisplayImagePathsForTheToolCard() {
+        val projector = AgentRunMessageProjector { 1_000L }
+        val runId = "run-images"
+        val started = projector.startTool(
+            runId,
+            AgentEvent.ToolStarted(1, "call-1", "virtual_observe", "{}"),
+            emptyList(),
+        )
+        val finished = projector.finishTool(
+            runId,
+            AgentEvent.ToolFinished(
+                round = 1,
+                toolCallId = "call-1",
+                name = "virtual_observe",
+                resultSummary = "ok=true",
+                imageCount = 1,
+                imageBytes = 3,
+                success = true,
+                imagePaths = listOf("/cache/tool-images/a.jpg"),
+            ),
+            started,
+        )
+
+        val tool = finished.filterIsInstance<ToolActivityMessageUi>().single()
+        assertEquals(listOf("/cache/tool-images/a.jpg"), tool.images)
+    }
+
+    @Test
     fun applyResultFillsSingleBlockKeepsMultiBlockAndReplacesWithNotice() {
         val projector = AgentRunMessageProjector { 1_000L }
         val single = projector.appendTextDelta("run", 1, 0, "流式半截", emptyList())

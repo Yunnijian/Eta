@@ -45,6 +45,18 @@ class AgentWorkStepsTest {
     }
 
     @Test
+    fun imageToolsStayIndividualSoScreenshotsRemainVisible() {
+        val steps = listOf(
+            tool("v1", "virtual_observe"),
+            tool("v2", "virtual_observe"),
+            tool("o1", "observe_screen"),
+        ).toWorkSteps()
+
+        assertEquals(3, steps.size)
+        assertTrue(steps.all { it is AgentWorkStep.Single })
+    }
+
+    @Test
     fun groupKeyStaysStableWhileCallsAppend() {
         val first = listOf(tool("t1", "read_file"), tool("t2", "read_file")).toWorkSteps()
         val next = listOf(tool("t1", "read_file"), tool("t2", "read_file"), tool("t3", "read_file")).toWorkSteps()

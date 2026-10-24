@@ -167,10 +167,13 @@ internal sealed interface AgentEvent {
         val imageBytes: Int,
         /** 可选：旧版本 Runtime 不发送，消费端缺省时回退到摘要文本判断。 */
         val success: Boolean? = null,
+        /** 已落盘的截图展示副本路径；只在 UI 侧使用，不进入模型请求。 */
+        val imagePaths: List<String> = emptyList(),
     ) : AgentEvent {
         override fun toLogLine(): String =
             "tool_finished round=$round, name=${name.toSafeLogToken()}, " +
-                "${resultSummary.toSafeResultLogFields()}, images=$imageCount, image_bytes=$imageBytes"
+                "${resultSummary.toSafeResultLogFields()}, images=$imageCount, image_bytes=$imageBytes, " +
+                "display_images=${imagePaths.size}"
     }
 
     data class HostedToolStarted(

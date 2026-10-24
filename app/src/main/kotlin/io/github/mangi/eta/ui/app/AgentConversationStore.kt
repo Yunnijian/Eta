@@ -454,6 +454,8 @@ internal object AgentConversationStore {
                 argumentsSummary = argumentsSummary,
                 resultSummary = resultSummary,
                 imageCount = imageCount,
+                // 用户消息存 data URL；工具消息存本地展示副本路径。
+                imagesJson = images.toJsonArrayString(),
             )
 
             is ToolSummaryMessageUi -> ConversationMessageEntity(
@@ -516,6 +518,7 @@ internal object AgentConversationStore {
                 command = content.takeIf(String::isNotBlank),
                 resultSummary = resultSummary,
                 imageCount = imageCount,
+                images = imagesJson.toStringList(),
             )
 
             TYPE_TOOL_SUMMARY -> ToolSummaryMessageUi(

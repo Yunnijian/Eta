@@ -1403,6 +1403,9 @@
   <string name="chat_previous_candidate">Previous candidate reply</string>
   <string name="chat_next_candidate">Next candidate reply</string>
   <string name="chat_image_attachment">Image attachment</string>
+  <string name="chat_image_preview">View image</string>
+  <string name="chat_image_close">Close image</string>
+  <string name="chat_image_more">%1$d more</string>
   <string name="chat_edit_preserve_following">Saving updates this message in place and keeps the rest of the conversation</string>
   <string name="chat_save_message">Save message</string>
   <string name="chat_character_story_start">The story begins here</string>

@@ -115,6 +115,7 @@ class AgentConversationStoreTest {
                     command = "pm list packages | head",
                     resultSummary = "ok=true, chars=100",
                     imageCount = 1,
+                    images = listOf("/data/user/0/io.github.mangi.eta.debug/cache/tool-images/a.jpg"),
                 ),
                 AgentMessageUi(
                     id = "assistant-1",

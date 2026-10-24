@@ -56,7 +56,13 @@ internal fun List<AgentChatMessageUi>.toWorkSteps(): List<AgentWorkStep> = build
     flushRun()
 }
 
-private val UNGROUPED_TOOLS = setOf("browser_use")
+private val UNGROUPED_TOOLS = setOf(
+    "browser_use",
+    "virtual_observe",
+    "observe_screen",
+    "read_image",
+    "browser_screenshot",
+)
 
 /** 折叠后的工作过程摘要所需计数。 */
 internal data class AgentWorkSummary(

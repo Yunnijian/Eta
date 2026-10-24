@@ -31,6 +31,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -104,6 +105,7 @@ internal fun ToolActivityRow(
     showTitle: Boolean = true,
 ) {
     var expanded by rememberSaveable(message.id) { mutableStateOf(false) }
+    var previewSource by remember(message.id) { mutableStateOf<String?>(null) }
     // 只有「当前浏览器」条目订阅实时会话快照，避免每个工具行都跟随快照重组。
     val browserSnapshot = if (showBrowserShortcut) {
         AgentBrowserSession.snapshots.collectAsState().value
@@ -191,6 +193,8 @@ internal fun ToolActivityRow(
             }
         }
 
+        ToolImageStrip(images = message.images, onOpen = { previewSource = it })
+
         AnimatedVisibility(visible = expanded) {
             ToolActivityDetail(
                 message = message,
@@ -198,6 +202,60 @@ internal fun ToolActivityRow(
                 showBrowserShortcut = showBrowserShortcut,
                 onOpenBrowser = onOpenBrowser,
             )
+        }
+    }
+    previewSource?.let { source ->
+        ChatImagePreviewDialog(source = source, onDismiss = { previewSource = null })
+    }
+}
+
+/**
+ * 工具截图缩略图。解码全部失败时不占位；文件被缓存清理后自动隐藏。
+ */
+@Composable
+private fun ToolImageStrip(
+    images: List<String>,
+    onOpen: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    if (images.isEmpty()) return
+    val loaded by produceState(emptyList<Pair<String, ImageBitmap>>(), images) {
+        value = withContext(Dispatchers.IO) {
+            images.take(MAX_VISIBLE_TOOL_IMAGES).mapNotNull { source ->
+                decodeChatBitmap(source, TOOL_THUMBNAIL_MAX_PX)?.let { source to it }
+            }
+        }
+    }
+    if (loaded.isEmpty()) return
+    Row(
+        modifier = modifier.fillMaxWidth().padding(top = 6.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        loaded.forEach { (source, bitmap) ->
+            Image(
+                bitmap = bitmap,
+                contentDescription = stringResource(R.string.chat_image_preview),
+                modifier = Modifier
+                    .size(TOOL_THUMBNAIL_WIDTH, TOOL_THUMBNAIL_HEIGHT)
+                    .clip(RoundedCornerShape(10.dp))
+                    .clickable { onOpen(source) },
+                contentScale = ContentScale.Crop,
+            )
+        }
+        if (loaded.size == MAX_VISIBLE_TOOL_IMAGES && images.size > loaded.size) {
+            Box(
+                modifier = Modifier
+                    .size(TOOL_THUMBNAIL_WIDTH, TOOL_THUMBNAIL_HEIGHT)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(MiuixTheme.colorScheme.surfaceContainer),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = stringResource(R.string.chat_image_more, images.size - loaded.size),
+                    style = MiuixTheme.textStyles.footnote2,
+                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                )
+            }
         }
     }
 }
@@ -381,6 +439,10 @@ private fun ToolActivityStatusUi.dotColor() = when (this) {
 
 private const val RUNNING_TIMER_THRESHOLD_SECONDS = 3
 private const val MAX_RESULT_LINES = 12
+private const val MAX_VISIBLE_TOOL_IMAGES = 3
+private const val TOOL_THUMBNAIL_MAX_PX = 480
+private val TOOL_THUMBNAIL_WIDTH = 152.dp
+private val TOOL_THUMBNAIL_HEIGHT = 112.dp
 
 /**
  * 浏览器工具的实时页面预览：迷你地址条 + 当前视口截图。

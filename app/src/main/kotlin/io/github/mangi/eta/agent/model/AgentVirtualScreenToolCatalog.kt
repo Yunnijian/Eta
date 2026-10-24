@@ -41,7 +41,7 @@ internal object AgentVirtualScreenToolCatalog {
             .put(
                 AgentToolSchema.function(
                     name = "virtual_observe",
-                    description = "观察虚拟屏：返回节点树和/或 JPEG 截图。坐标是虚拟显示像素，只能配合 virtual_tap/virtual_swipe 使用。",
+                    description = "观察虚拟屏：返回节点树和/或 JPEG 截图。用户要求查看画面时用 screenshot 或 both，截图会显示在工具卡片中。坐标是虚拟显示像素，只能配合 virtual_tap/virtual_swipe 使用。",
                     parameters = JSONObject()
                         .put("type", "object")
                         .put(

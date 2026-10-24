@@ -1381,6 +1381,9 @@
   <string name="chat_previous_candidate">上一条候选回复</string>
   <string name="chat_next_candidate">下一条候选回复</string>
   <string name="chat_image_attachment">图片附件</string>
+  <string name="chat_image_preview">查看大图</string>
+  <string name="chat_image_close">关闭图片</string>
+  <string name="chat_image_more">还有 %1$d 张</string>
   <string name="chat_edit_preserve_following">保存后原位更新这条消息，并保留后续对话</string>
   <string name="chat_save_message">保存消息</string>
   <string name="chat_character_story_start">故事从这里开始</string>

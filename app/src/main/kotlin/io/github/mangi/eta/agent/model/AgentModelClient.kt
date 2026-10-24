@@ -370,6 +370,8 @@ internal object AgentModelClient {
          * 最终 assistant 自己组织的答复不受此标记影响。
          */
         val sensitive: Boolean = false,
+        /** 已落盘的截图展示副本；只用于聊天 UI，不参与模型请求。 */
+        val displayImagePaths: List<String> = emptyList(),
     )
 
     /** 图片引用：入口侧可为本地 URI/路径，进入模型协议前必须解析为远程 URL 或 data URL。 */

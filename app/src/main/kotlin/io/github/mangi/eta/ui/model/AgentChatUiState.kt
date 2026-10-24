@@ -154,6 +154,8 @@ data class ToolActivityMessageUi(
     val command: String? = null,
     val resultSummary: String? = null,
     val imageCount: Int = 0,
+    /** 已落盘的截图展示副本路径；文件缺失时 UI 静默跳过。 */
+    val images: List<String> = emptyList(),
 ) : AgentChatMessageUi
 
 enum class ToolActivityStatusUi {
