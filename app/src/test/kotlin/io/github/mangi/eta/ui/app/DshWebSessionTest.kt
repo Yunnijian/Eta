@@ -88,18 +88,27 @@ class DshWebSessionTest {
     ) : DshWebSession.Tasks {
         private var task: DetachedTask? = if (existing) task("old") else null
         var starts = 0
+        var lastCommand: String? = null
         val stops = mutableListOf<String>()
         var onLogs: () -> Unit = {}
         override fun list() = task?.let { listOf(DetachedTaskStatus(it, running)) }.orEmpty()
-        override fun start(environment: TerminalEnvironment, identity: String): DaemonStartResult {
+        override fun start(
+            environment: TerminalEnvironment,
+            identity: String,
+            command: String,
+        ): DaemonStartResult {
             starts++
-            return DaemonStartResult.Started(task("new").also { task = it })
+            lastCommand = command
+            return DaemonStartResult.Started(task("new", command).also { task = it })
         }
         override fun logs(id: String): DaemonLogsResult { onLogs(); return DaemonLogsResult(ok = true, text = output) }
-        override fun stop(id: String) { stops += id }
+        override fun stop(id: String) {
+            stops += id
+            if (task?.id == id) task = null
+        }
         companion object {
-            private fun task(id: String) = DetachedTask(
-                id, 10, "owner", DshWebSession.COMMAND, "/workspace", "user", ENV, "/log", 0, BACKEND,
+            private fun task(id: String, command: String = DshWebSession.COMMAND) = DetachedTask(
+                id, 10, "owner", command, "/workspace", "user", ENV, "/log", 0, BACKEND,
             )
         }
     }

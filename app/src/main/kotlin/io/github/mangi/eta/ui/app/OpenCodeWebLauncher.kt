@@ -9,6 +9,8 @@ import io.github.mangi.eta.agent.terminal.InstallerShellRunner
 import io.github.mangi.eta.agent.terminal.LinuxEnvironmentPaths
 import io.github.mangi.eta.agent.terminal.TerminalEnvironment
 import io.github.mangi.eta.agent.terminal.TerminalRuntime
+import io.github.mangi.eta.agent.virtualscreen.mcp.VirtualScreenMcpProvisioning
+import io.github.mangi.eta.core.AndroidAgentLogger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
@@ -37,8 +39,12 @@ internal class OpenCodeWebLauncher(
     private val session = OpenCodeWebSession(
         tasks = object : OpenCodeWebSession.Tasks {
             override fun list() = daemonSupervisor.list()
-            override fun start(environment: TerminalEnvironment, identity: String) = daemonSupervisor.start(
-                command = OpenCodeWebSession.COMMAND, cwd = "/workspace", identity = identity, environment = environment,
+            override fun start(
+                environment: TerminalEnvironment,
+                identity: String,
+                command: String,
+            ) = daemonSupervisor.start(
+                command = command, cwd = "/workspace", identity = identity, environment = environment,
             )
             override fun logs(id: String) = daemonSupervisor.readLogs(id)
             override fun stop(id: String) { daemonSupervisor.stop(id) }
@@ -82,7 +88,22 @@ internal class OpenCodeWebLauncher(
             }
             try {
                 currentCoroutineContext().ensureActive()
-                session.launch(environment, identity, LinuxEnvironmentPaths.backendOf(rootfs.absolutePath))
+                runCatching {
+                    VirtualScreenMcpProvisioning.provision(
+                        context = context,
+                        environment = environment,
+                        identity = identity,
+                        rootfs = rootfs,
+                    )
+                }.onFailure {
+                    AndroidAgentLogger.warn("Virtual screen MCP provisioning failed: ${it.javaClass.simpleName}")
+                }
+                session.launch(
+                    environment = environment,
+                    identity = identity,
+                    backend = LinuxEnvironmentPaths.backendOf(rootfs.absolutePath),
+                    command = OpenCodeWebSession.COMMAND,
+                )
             } finally {
                 if (identity == "user") AgentExecutionService.release(LAUNCH_ID)
             }
@@ -122,6 +143,6 @@ internal class OpenCodeWebLauncher(
     private companion object {
         val launchMutex = Mutex()
         const val LAUNCH_ID = "opencode-launch"
-        const val PAIR_TIMEOUT_SECONDS = 30L
+        const val PAIR_TIMEOUT_SECONDS = 15L
     }
 }

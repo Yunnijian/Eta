@@ -21,7 +21,11 @@ internal class DshWebSession(
 ) {
     interface Tasks {
         fun list(): List<DetachedTaskStatus>
-        fun start(environment: TerminalEnvironment, identity: String): DaemonStartResult
+        fun start(
+            environment: TerminalEnvironment,
+            identity: String,
+            command: String,
+        ): DaemonStartResult
         fun logs(id: String): DaemonLogsResult
         fun stop(id: String)
     }
@@ -30,6 +34,7 @@ internal class DshWebSession(
         environment: TerminalEnvironment,
         identity: String,
         backend: LinuxExecutionBackend,
+        command: String = COMMAND,
     ): DshWebLaunchResult {
         var createdTaskId: String? = null
         var opened = false
@@ -38,7 +43,7 @@ internal class DshWebSession(
                 it.running && it.task.environment == environment && it.task.identity == identity &&
                     it.task.backend == backend && matchesCommand(it.task.command)
             }
-            val taskId = existing?.task?.id ?: when (val started = tasks.start(environment, identity)) {
+            val taskId = existing?.task?.id ?: when (val started = tasks.start(environment, identity, command)) {
                 is DaemonStartResult.Started -> started.task.id.also { createdTaskId = it }
                 is DaemonStartResult.Failed -> return DshWebLaunchResult.Failed(started.code)
             }
@@ -69,9 +74,11 @@ internal class DshWebSession(
          * 显式绑回环，避免把 Web UI 暴露到局域网；proot 里没有 bwrap/systemd，
          * 沙箱降级为完全放行。端口交给系统分配，实际地址从启动日志读取。
          */
-        const val COMMAND =
+        private const val BASE_COMMAND =
             "DSH_TELEMETRY_DISABLED=1 DSH_PERMISSION_MODE=danger-full-access " +
                 "dsh web --no-open --host 127.0.0.1 --port 0"
+
+        const val COMMAND = BASE_COMMAND
 
         fun matchesCommand(command: String): Boolean = command.trim() == COMMAND
 

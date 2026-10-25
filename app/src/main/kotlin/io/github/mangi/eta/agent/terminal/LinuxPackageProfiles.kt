@@ -1,6 +1,7 @@
 package io.github.mangi.eta.agent.terminal
 
 import android.content.Context
+import io.github.mangi.eta.agent.virtualscreen.mcp.VirtualScreenMcpProvisioning
 import io.github.mangi.eta.core.AndroidAgentLogger
 import java.io.File
 import kotlinx.coroutines.Dispatchers
@@ -290,11 +291,29 @@ internal class LinuxPackageProfileInstaller(
             return@withContext PackageProfileInstallResult.Failed(PackageProfileInstallStage.INSTALLING)
         }
 
+        if (profile.id in VIRTUAL_SCREEN_MCP_PROFILES) {
+            // 安装完成即写入 MCP 配置，后续启动无需任何手动配置或额外参数。
+            runCatching {
+                VirtualScreenMcpProvisioning.provision(
+                    context = context,
+                    environment = distribution.terminalEnvironment,
+                    identity = TerminalRuntime.defaultIdentity(
+                        distribution.terminalEnvironment,
+                        rootfs.absolutePath,
+                    ),
+                    rootfs = rootfs,
+                )
+            }.onFailure {
+                AndroidAgentLogger.warn("Virtual screen MCP install provisioning failed: ${it.javaClass.simpleName}")
+            }
+        }
+
         onProgress(PackageProfileInstallProgress(PackageProfileInstallStage.COMPLETE))
         PackageProfileInstallResult.Installed
     }
 
     companion object {
         private val installMutex = Mutex()
+        private val VIRTUAL_SCREEN_MCP_PROFILES = setOf("dsh", "opencode", "kimi")
     }
 }

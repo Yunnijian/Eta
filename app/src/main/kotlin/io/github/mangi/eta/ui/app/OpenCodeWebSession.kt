@@ -24,7 +24,11 @@ internal class OpenCodeWebSession(
 ) {
     interface Tasks {
         fun list(): List<DetachedTaskStatus>
-        fun start(environment: TerminalEnvironment, identity: String): DaemonStartResult
+        fun start(
+            environment: TerminalEnvironment,
+            identity: String,
+            command: String,
+        ): DaemonStartResult
         fun logs(id: String): DaemonLogsResult
         fun stop(id: String)
     }
@@ -38,6 +42,7 @@ internal class OpenCodeWebSession(
         environment: TerminalEnvironment,
         identity: String,
         backend: LinuxExecutionBackend,
+        command: String = COMMAND,
     ): OpenCodeWebLaunchResult {
         var createdTaskId: String? = null
         var opened = false
@@ -46,7 +51,7 @@ internal class OpenCodeWebSession(
                 it.running && it.task.environment == environment && it.task.identity == identity &&
                     it.task.backend == backend && matchesCommand(it.task.command)
             }
-            val taskId = existing?.task?.id ?: when (val started = tasks.start(environment, identity)) {
+            val taskId = existing?.task?.id ?: when (val started = tasks.start(environment, identity, command)) {
                 is DaemonStartResult.Started -> started.task.id.also { createdTaskId = it }
                 is DaemonStartResult.Failed -> return OpenCodeWebLaunchResult.Failed(started.code)
             }
@@ -89,8 +94,10 @@ internal class OpenCodeWebSession(
     }
 
     companion object {
+        private const val BASE_COMMAND = "opencode serve --service --hostname 127.0.0.1 --port 4096"
+
         /** 必须带 `--service`（否则配对返回 UnauthorizedError）并显式绑回环，避免把 Web UI 暴露到局域网。 */
-        const val COMMAND = "opencode serve --service --hostname 127.0.0.1 --port 4096"
+        const val COMMAND = BASE_COMMAND
 
         fun matchesCommand(command: String): Boolean = command.trim() == COMMAND
 
