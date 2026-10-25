@@ -153,6 +153,9 @@ androidComponents {
 
 dependencies {
     coreLibraryDesugaring(libs.desugar.jdk.libs.nio)
+    // sherpa-onnx 本地离线识别（静态链接 onnxruntime，仅打包 arm64-v8a）；
+    // AAR 由 scripts/fetch-sherpa-aar.sh 按 SHA-256 拉取，不入库。
+    implementation(files("libs/sherpa-onnx-1.13.8.aar"))
     implementation(libs.jsoup)
     implementation(libs.commons.compress)
     implementation(libs.xz)

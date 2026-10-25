@@ -34,8 +34,11 @@ internal object SettingsDataStore {
     fun speechSettingsFlow(): Flow<SpeechSettings> {
         ensureInitialized()
         return dataStore.data.map { prefs ->
-            prefs[SPEECH_SETTINGS]?.let { speechJson.decodeFromString<SpeechSettings>(it) }
-                ?: SpeechSettings()
+            // 服务商枚举随版本增删（如移除实验入口），旧值反序列化失败时回退默认，
+            // 避免遗留配置把整个语音设置与启动链路带崩。
+            prefs[SPEECH_SETTINGS]?.let {
+                runCatching { speechJson.decodeFromString<SpeechSettings>(it) }.getOrNull()
+            } ?: SpeechSettings()
         }
     }
 

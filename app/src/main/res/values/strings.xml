@@ -1305,6 +1305,12 @@
   <string name="speech_overview_note">Dictation in chat turns speech into editable text first. Answers can be read aloud manually; recording stops playback.</string>
   <string name="speech_service_and_model">Service &amp; model</string>
   <string name="speech_asr_system">System speech service</string>
+  <string name="speech_asr_local">Local model (offline)</string>
+  <string name="speech_asr_note_local">On-device streaming recognition with a bundled Sherpa-ONNX model; audio never leaves the device and works fully offline. Download the model (~36 MB) before first use.</string>
+  <string name="speech_local_model_title">Local recognition model</string>
+  <string name="speech_local_model_downloading">Downloading model… %1$d%%</string>
+  <string name="speech_local_model_ready">Ready (%1$s MB on disk)</string>
+  <string name="speech_local_model_absent">Not downloaded yet (%1$s MB via hf-mirror.com)</string>
   <string name="speech_asr_qwen_realtime">Qwen · Realtime</string>
   <string name="speech_asr_qwen_flash">Qwen · Short audio</string>
   <string name="speech_asr_qwen_file">Qwen · File transcription</string>

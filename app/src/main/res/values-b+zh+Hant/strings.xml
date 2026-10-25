@@ -1274,6 +1274,12 @@
   <string name="speech_overview_note">聊天中的語音輸入會先轉成可編輯文字。回答可手動朗讀，開始錄音會停止播放。</string>
   <string name="speech_service_and_model">服務與模型</string>
   <string name="speech_asr_system">系統語音服務</string>
+  <string name="speech_asr_local">本機模型（離線）</string>
+  <string name="speech_asr_note_local">使用內建的 Sherpa-ONNX 串流模型在本機辨識，音訊不出裝置，完全離線可用。首次使用前需下載模型（約 36 MB）。</string>
+  <string name="speech_local_model_title">本機辨識模型</string>
+  <string name="speech_local_model_downloading">正在下載模型… %1$d%%</string>
+  <string name="speech_local_model_ready">已就緒（佔用 %1$s MB）</string>
+  <string name="speech_local_model_absent">尚未下載（約 %1$s MB，經 hf-mirror.com 下載）</string>
   <string name="speech_asr_qwen_realtime">千問 · 即時識別</string>
   <string name="speech_asr_qwen_flash">千問 · 短音訊識別</string>
   <string name="speech_asr_qwen_file">千問 · 檔案轉寫</string>

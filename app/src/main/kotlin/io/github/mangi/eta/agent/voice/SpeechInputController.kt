@@ -67,7 +67,8 @@ internal class SpeechInputController(
                 val config = settings ?: SpeechSettingsRepository.settings()
                 if (!config.recognitionEnabled) return@launch
                 lease = SpeechAudioLease(context) { cancel() }.also { it.acquire(playback = false) }
-                val secrets = credentials ?: if (config.asr == AsrProvider.SYSTEM) SpeechCredentials()
+                val secrets = credentials
+                    ?: if (config.asr == AsrProvider.SYSTEM || config.asr == AsrProvider.LOCAL) SpeechCredentials()
                     else SpeechSettingsRepository.credentials(context)
                 validateSpeechSettings(config, secrets, synthesis = false)
                 val endpointSilenceMs = if (automaticEndpoint && !holdToTalk) config.autoSendSilenceMs else 0
@@ -76,6 +77,73 @@ internal class SpeechInputController(
                 if (config.asr == AsrProvider.SYSTEM) {
                     startSystem(session, endpointSilenceMs)
                     awaitCancellation()
+                } else if (config.asr == AsrProvider.LOCAL) {
+                    val audio = SpeechRecorder()
+                    recorder = audio
+                    fun update(transform: (SpeechInputState) -> SpeechInputState) {
+                        scope.launch(Dispatchers.Main.immediate) {
+                            if (generation == session) mutableState.value = transform(mutableState.value)
+                        }
+                    }
+                    val text = coroutineScope {
+                        var recording: Job? = null
+                        val begin = {
+                            if (recording == null) {
+                                beforeCapture()
+                                capturing = true
+                                recording = launch {
+                                    try {
+                                        audio.record(
+                                            onReady = { update { it.copy(phase = EtaSpeechPhase.LISTENING, progress = "正在聆听，点击完成结束") } },
+                                            onLevel = { level -> update { it.copy(level = level) } },
+                                        )
+                                    } finally {
+                                        if (generation == session) releaseCapture()
+                                    }
+                                }
+                            }
+                            Unit
+                        }
+                        try {
+                            update { it.copy(progress = "正在加载本地模型") }
+                            if (!SherpaModelStore.isDownloaded(context)) {
+                                throw SpeechFailure(SpeechErrorCode.CONFIGURATION, "本地识别模型未下载，请在语音识别设置中下载")
+                            }
+                            val recognizer = SherpaAsrEngine.open(SherpaModelStore.modelDir(context))
+                            val stream = SherpaAsrEngine.stream(recognizer)
+                            val completed = StringBuilder()
+                            var pending = ""
+                            val pump = launch(Dispatchers.Default) {
+                                for (pcm in audio.frames) {
+                                    stream.acceptWaveform(SherpaAsrEngine.toSamples(pcm), SherpaAsrEngine.SAMPLE_RATE)
+                                    while (recognizer.isReady(stream)) recognizer.decode(stream)
+                                    pending = recognizer.getResult(stream).text
+                                    if (recognizer.isEndpoint(stream)) {
+                                        completed.append(pending)
+                                        pending = ""
+                                        recognizer.reset(stream)
+                                    }
+                                    if (generation == session) update { it.copy(preview = completed.toString() + pending) }
+                                }
+                                stream.inputFinished()
+                                while (recognizer.isReady(stream)) recognizer.decode(stream)
+                                pending = recognizer.getResult(stream).text
+                                if (generation == session) update { it.copy(preview = completed.toString() + pending) }
+                            }
+                            begin()
+                            withTimeout(65_000) { pump.join() }
+                            completed.toString() + pending
+                        } finally {
+                            audio.cancel()
+                            recording?.cancel()
+                        }
+                    }
+                    if (text.isBlank()) throw SpeechFailure(SpeechErrorCode.NO_SPEECH, "没有识别到语音，请重试")
+                    val final = refined(session, text)
+                    if (generation == session) {
+                        cancel()
+                        onResult(final)
+                    }
                 } else {
                     val audio = SpeechRecorder()
                     recorder = audio
