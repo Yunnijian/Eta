@@ -1,5 +1,6 @@
 package io.github.mangi.eta.agent.model
 
+import io.github.mangi.eta.agent.tool.AgentToolCapabilities
 import org.json.JSONArray
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
@@ -185,6 +186,41 @@ class AgentToolCatalogTest {
             listOf("replace_range", "append", "clear"),
             properties.getJSONObject("mode").getJSONArray("enum").stringValues(),
         )
+    }
+
+    @Test
+    fun virtualScreenOnlyDropsMainScreenGuiTools() {
+        val names = AgentToolCatalog.build(
+            terminalTools = false,
+            browserTools = false,
+            capabilities = AgentToolCapabilities(rootAvailable = true),
+            virtualScreenOnly = true,
+        ).toolNames().toSet()
+
+        assertTrue("virtual_display" in names)
+        assertTrue("get_current_context" in names)
+        assertTrue("search_apps" in names)
+        assertFalse("observe_screen" in names)
+        assertFalse("tap_element" in names)
+        assertFalse("type_text" in names)
+        assertFalse("launch_app" in names)
+        assertFalse("open_uri" in names)
+    }
+
+    @Test
+    fun virtualScreenOnlyKeepsVirtualToolsWhenRootStateIsStale() {
+        val names = AgentToolCatalog.build(
+            terminalTools = false,
+            browserTools = false,
+            capabilities = AgentToolCapabilities(rootAvailable = false),
+            virtualScreenOnly = true,
+        ).toolNames().toSet()
+
+        // Root 探测可能过期，虚拟屏工具仍应下发，由执行期返回 ROOT_REQUIRED。
+        assertTrue("virtual_display" in names)
+        assertTrue("virtual_observe" in names)
+        assertFalse("observe_screen" in names)
+        assertFalse("tap_element" in names)
     }
 
     private fun JSONArray.toolNames(): List<String> =

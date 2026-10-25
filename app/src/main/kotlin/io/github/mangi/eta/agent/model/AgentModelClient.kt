@@ -143,6 +143,10 @@ internal object AgentModelClient {
             config, skillContext, memoryContext, initialCapabilities.rootAvailable,
             preferVirtualScreen, roleplayContext, executionContext,
         ).length()
+        // 虚拟屏默认模式可能在执行时才发现 Root 不可用；此时回退到主屏工具继续任务，
+        // 而不是让模型卡在 ROOT_REQUIRED 上。
+        var promptVirtualScreen = preferVirtualScreen
+        var virtualFallbackNeeded = false
         fun toolsFor(capabilities: AgentToolCapabilities): JSONArray {
             if (rewriteReply) return JSONArray()
             val tools = AgentToolCatalog.build(
@@ -157,6 +161,7 @@ internal object AgentModelClient {
                 memoryWritable = roleplayContext == null,
                 capabilities = capabilities,
                 localWebSearch = !config.usesHostedWebSearch,
+                virtualScreenOnly = promptVirtualScreen,
             )
             for (index in 0 until additionalTools.length()) {
                 tools.put(additionalTools.opt(index))
@@ -176,16 +181,32 @@ internal object AgentModelClient {
         // Root 授权真正变化时整体重建；其余能力只增不减：短暂不可用的工具仍保留，执行时自行报告错误码。
         var promptRootAvailable = initialCapabilities.rootAvailable
         var publishedTools = tools
+        fun rebuildSystemMessages(
+            rootAvailable: Boolean,
+            virtualScreen: Boolean,
+            virtualScreenFallback: Boolean = false,
+        ) {
+            val systemMessages = AgentPromptBuilder.buildSystemMessages(
+                config, skillContext, memoryContext, rootAvailable,
+                virtualScreen, roleplayContext, executionContext,
+                virtualScreenFallback = virtualScreenFallback,
+            )
+            for (index in 0 until systemMessages.length()) {
+                messages.put(index, systemMessages.getJSONObject(index))
+            }
+        }
         fun toolsForRound(): JSONArray {
             val capabilities = capabilitiesProvider()
+            if (virtualFallbackNeeded && promptVirtualScreen) {
+                promptVirtualScreen = false
+                val fallbackRootAvailable = capabilities.rootAvailable
+                rebuildSystemMessages(fallbackRootAvailable, false, virtualScreenFallback = true)
+                promptRootAvailable = fallbackRootAvailable
+                publishedTools = withoutVirtualTools(toolsFor(capabilities))
+                return publishedTools
+            }
             if (capabilities.rootAvailable != promptRootAvailable) {
-                val systemMessages = AgentPromptBuilder.buildSystemMessages(
-                    config, skillContext, memoryContext, capabilities.rootAvailable,
-                    preferVirtualScreen, roleplayContext, executionContext,
-                )
-                for (index in 0 until systemMessages.length()) {
-                    messages.put(index, systemMessages.getJSONObject(index))
-                }
+                rebuildSystemMessages(capabilities.rootAvailable, promptVirtualScreen)
                 promptRootAvailable = capabilities.rootAvailable
                 publishedTools = toolsFor(capabilities)
                 return publishedTools
@@ -213,9 +234,14 @@ internal object AgentModelClient {
             // 目录在运行内只增不减，可见不再等于可用：执行前用同一规则复核，
             // 中途失去的能力返回与目录过滤一致的错误码，而不是让底层接口给出含糊的失败。
             toolExecutor = AgentModelClient.ToolExecutor { call ->
-                val unavailable = AgentToolRequirements.find(call.name)
-                    ?.let { capabilitiesProvider().unavailableCode(call.name) }
-                if (unavailable == null) {
+                // 虚拟屏工具由引擎自己探测 Root，避免 RootAccess 缓存过期时误判 ROOT_REQUIRED。
+                val unavailable = if (call.name.startsWith("virtual_")) {
+                    null
+                } else {
+                    AgentToolRequirements.find(call.name)
+                        ?.let { capabilitiesProvider().unavailableCode(call.name) }
+                }
+                val result = if (unavailable == null) {
                     toolExecutor.execute(call)
                 } else {
                     ToolResult(
@@ -223,6 +249,10 @@ internal object AgentModelClient {
                             .put("message", "该工具当前不可用（$unavailable），本次未执行").toString(),
                     )
                 }
+                if (call.name.startsWith("virtual_") && isRootRequired(result)) {
+                    virtualFallbackNeeded = true
+                }
+                result
             },
             runController = runController,
             traceFormatter = traceFormatter,
@@ -262,6 +292,16 @@ internal object AgentModelClient {
 
     private fun toolNames(tools: JSONArray): Set<String> =
         (0 until tools.length()).mapNotNullTo(mutableSetOf()) { toolName(tools.getJSONObject(it)) }
+
+    private fun withoutVirtualTools(tools: JSONArray): JSONArray = JSONArray().also { filtered ->
+        for (index in 0 until tools.length()) {
+            val tool = tools.getJSONObject(index)
+            if (toolName(tool).orEmpty().startsWith("virtual_").not()) filtered.put(tool)
+        }
+    }
+
+    private fun isRootRequired(result: ToolResult): Boolean =
+        runCatching { JSONObject(result.content).optString("code") }.getOrNull() == "ROOT_REQUIRED"
 
     private fun ModelConfig.validate() {
         require(baseUrl.isNotBlank()) { "请先配置 API 地址" }
