@@ -66,4 +66,55 @@ class SystemSpeechRecognizerTest {
             ),
         )
     }
+
+    @Test fun debugBuildSkipsReleaseVariantService() {
+        assertNull(
+            SystemSpeechRecognizer.selectExternalService(
+                listOf(
+                    service(
+                        "io.github.mangi.eta",
+                        "EtaRecognitionService",
+                        permission = "android.permission.BIND_SPEECH_RECOGNITION_SERVICE",
+                    ),
+                ),
+                "io.github.mangi.eta.debug",
+                ComponentName("io.github.mangi.eta", "EtaRecognitionService"),
+            ),
+        )
+    }
+
+    @Test fun releaseBuildSkipsDebugVariantService() {
+        assertNull(
+            SystemSpeechRecognizer.selectExternalService(
+                listOf(
+                    service(
+                        "io.github.mangi.eta.debug",
+                        "EtaRecognitionService",
+                        permission = "android.permission.BIND_SPEECH_RECOGNITION_SERVICE",
+                    ),
+                ),
+                "io.github.mangi.eta",
+                null,
+            ),
+        )
+    }
+
+    @Test fun variantServiceSkippedButUnrelatedServiceStillSelected() {
+        val other = ComponentName("com.vendor", "Recognizer")
+        assertEquals(
+            other,
+            SystemSpeechRecognizer.selectExternalService(
+                listOf(
+                    service(
+                        "io.github.mangi.eta",
+                        "EtaRecognitionService",
+                        permission = "android.permission.BIND_SPEECH_RECOGNITION_SERVICE",
+                    ),
+                    service(other.packageName, other.className, permission = "android.permission.BIND_SPEECH_RECOGNITION_SERVICE"),
+                ),
+                "io.github.mangi.eta.debug",
+                null,
+            ),
+        )
+    }
 }

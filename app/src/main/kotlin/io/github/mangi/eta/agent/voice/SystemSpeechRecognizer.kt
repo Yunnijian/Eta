@@ -58,7 +58,7 @@ internal object SystemSpeechRecognizer {
             .asSequence()
             .mapNotNull { it.serviceInfo }
             .filter {
-                it.packageName != ownPackage && it.exported && it.enabled &&
+                !sameAppVariant(it.packageName, ownPackage) && it.exported && it.enabled &&
                     it.applicationInfo?.enabled != false
             }
             .filter {
@@ -75,6 +75,13 @@ internal object SystemSpeechRecognizer {
             )
             .map { ComponentName(it.packageName, it.name) }
             .firstOrNull()
+
+    /**
+     * 不同构建变体的包名只差后缀（如 debug 的 `.debug`）且签名不同，无法按签名识别。
+     * 变体之间互相委托只会绕回自身实现（debug→release→debug 成环），需与自身一并排除。
+     */
+    private fun sameAppVariant(candidate: String, own: String): Boolean =
+        candidate == own || candidate.startsWith("$own.") || own.startsWith("$candidate.")
 
     private const val VOICE_RECOGNITION_SERVICE = "voice_recognition_service"
 }
