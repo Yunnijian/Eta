@@ -857,6 +857,8 @@
   <string name="virtual_screen_tools_entry_summary">5 tools: virtual_display, virtual_observe, virtual_tap, virtual_swipe, virtual_input</string>
   <string name="virtual_screen_mcp_service">MCP service</string>
   <string name="virtual_screen_mcp_service_summary">Allow external agents to call the virtual screen over MCP</string>
+  <string name="virtual_screen_work_when_screen_off">Keep virtual screen on when display is off</string>
+  <string name="virtual_screen_work_when_screen_off_summary">Allow the virtual screen to keep running while the display is off.</string>
   <string name="virtual_screen_session_timeout">Virtual screen session timeout</string>
   <string name="virtual_screen_session_timeout_summary">Close the virtual screen after inactivity</string>
   <string name="virtual_screen_timeout_5">5 minutes</string>

@@ -31,6 +31,7 @@ internal object VirtualScreenSessionManager {
     private const val IDLE_TIMEOUT_KEY = "session_timeout_minutes"
     private const val DEFAULT_SCREEN_KEY = "default_device_screen"
     private const val MAX_SCREENS_KEY = "max_screens"
+    private const val ALLOW_SCREEN_OFF_KEY = "allow_screen_off_when_locked"
 
     /** AI 操作设备时优先使用的屏幕；只影响系统提示中的默认操作路径。 */
     enum class DefaultDeviceScreen(val value: String) {
@@ -60,6 +61,14 @@ internal object VirtualScreenSessionManager {
 
     fun setIdleTimeoutMinutes(context: Context, minutes: Int) {
         preferences(context).edit().putInt(IDLE_TIMEOUT_KEY, minutes.coerceIn(0, 240)).apply()
+    }
+
+    /** 熄屏工作：宿主熄屏时虚拟屏保持运行，作为新会话的默认值；工具参数仍可逐次覆盖。 */
+    fun allowScreenOff(context: Context): Boolean = preferences(context)
+        .getBoolean(ALLOW_SCREEN_OFF_KEY, false)
+
+    fun setAllowScreenOff(context: Context, enabled: Boolean) {
+        preferences(context).edit().putBoolean(ALLOW_SCREEN_OFF_KEY, enabled).apply()
     }
 
     fun maxScreens(context: Context): Int = preferences(context)
@@ -270,6 +279,7 @@ internal object VirtualScreenSessionManager {
             width = width,
             height = height,
             density = density,
+            allowScreenOff = allowScreenOff(context),
             idleTimeoutMinutes = idleTimeoutMinutes(context),
         )
     }

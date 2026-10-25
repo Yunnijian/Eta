@@ -41,7 +41,7 @@ internal class VirtualScreenTools(
                         height = args.optInt("height", defaults.height),
                         density = args.optInt("density", defaults.density),
                         rotation = args.optInt("rotation", 0),
-                        allowScreenOff = args.optBoolean("allow_screen_off", false),
+                        allowScreenOff = args.optBoolean("allow_screen_off", defaults.allowScreenOff),
                         idleTimeoutMinutes = args.optInt(
                             "idle_timeout_minutes",
                             VirtualScreenSessionManager.idleTimeoutMinutes(context),

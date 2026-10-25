@@ -68,6 +68,9 @@ internal fun VirtualScreenSettingsScreen(
             ) 1 else 0,
         )
     }
+    var allowScreenOff by remember {
+        mutableStateOf(VirtualScreenSessionManager.allowScreenOff(appContext))
+    }
     val configuredEndpoint = remember { VirtualScreenMcpRuntime.endpoint(appContext) }
     val visibleEndpoint = endpoint ?: configuredEndpoint
     val lanEndpoint = lanAddress?.let { "http://$it:${visibleEndpoint.port}" }
@@ -132,6 +135,16 @@ internal fun VirtualScreenSettingsScreen(
                         val count = index + 1
                         maxScreens = count
                         VirtualScreenSessionManager.setMaxScreens(appContext, count)
+                    },
+                )
+                EtaPreferenceDivider()
+                EtaSwitchPreference(
+                    title = stringResource(R.string.virtual_screen_work_when_screen_off),
+                    summary = stringResource(R.string.virtual_screen_work_when_screen_off_summary),
+                    checked = allowScreenOff,
+                    onCheckedChange = { enabled ->
+                        allowScreenOff = enabled
+                        VirtualScreenSessionManager.setAllowScreenOff(appContext, enabled)
                     },
                 )
             }

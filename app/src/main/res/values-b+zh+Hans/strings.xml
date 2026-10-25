@@ -849,6 +849,8 @@
   <string name="virtual_screen_tools_entry_summary">5 个工具：virtual_display、virtual_observe、virtual_tap、virtual_swipe、virtual_input</string>
   <string name="virtual_screen_mcp_service">MCP 服务</string>
   <string name="virtual_screen_mcp_service_summary">允许外部 Agent 通过 MCP 调用虚拟屏</string>
+  <string name="virtual_screen_work_when_screen_off">熄屏时保持虚拟屏运行</string>
+  <string name="virtual_screen_work_when_screen_off_summary">允许虚拟屏熄屏时运行</string>
   <string name="virtual_screen_session_timeout">虚拟屏会话时间</string>
   <string name="virtual_screen_session_timeout_summary">无操作后自动关闭虚拟屏</string>
   <string name="virtual_screen_timeout_5">5 分钟</string>
