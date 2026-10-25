@@ -15,6 +15,7 @@ internal data class VirtualScreenState(
     val width: Int,
     val height: Int,
     val rotation: Int,
+    val enginePid: Int = 0,
 )
 
 /**
@@ -73,30 +74,41 @@ internal object VirtualScreenSessionManager {
     suspend fun create(context: Context, config: VirtualScreenConfig = defaultConfig(context)): VirtualScreenState =
         mutex.withLock {
             state?.let { return@withLock it }
-            val started = VirtualScreenProcessHost(context.applicationInfo.sourceDir).also { host = it }
-            val response = started.request(
-                JSONObject()
-                    .put("action", "create")
-                    .put("width", config.width)
-                    .put("height", config.height)
-                    .put("density", config.density)
-                    .put("rotation", config.rotation)
-                    .put("allowScreenOff", config.allowScreenOff)
-                    .put("idleTimeoutMinutes", config.idleTimeoutMinutes)
-                    .put("ownerPackage", context.packageName)
-                    .put("ownerApk", context.applicationInfo.sourceDir),
-                timeoutMs = 30_000,
-            ).requireOk()
-            val created = VirtualScreenState(
-                displayId = response.getInt("displayId"),
-                handleId = response.getString("handleId"),
-                config = config,
-                width = response.getInt("width"),
-                height = response.getInt("height"),
-                rotation = response.getInt("rotation"),
-            )
-            state = created
-            created
+            val started = VirtualScreenProcessHost(context.applicationInfo.sourceDir)
+            host = started
+            try {
+                val response = started.request(
+                    JSONObject()
+                        .put("action", "create")
+                        .put("width", config.width)
+                        .put("height", config.height)
+                        .put("density", config.density)
+                        .put("rotation", config.rotation)
+                        .put("allowScreenOff", config.allowScreenOff)
+                        .put("idleTimeoutMinutes", config.idleTimeoutMinutes)
+                        .put("ownerPackage", context.packageName)
+                        .put("ownerApk", context.applicationInfo.sourceDir),
+                    timeoutMs = 30_000,
+                ).requireOk()
+                val created = VirtualScreenState(
+                    displayId = response.getInt("displayId"),
+                    handleId = response.getString("handleId"),
+                    config = config,
+                    width = response.getInt("width"),
+                    height = response.getInt("height"),
+                    rotation = response.getInt("rotation"),
+                    enginePid = response.optInt("enginePid", 0),
+                )
+                state = created
+                created
+            } catch (failure: Throwable) {
+                // 创建过程中失败（超时、响应丢失）时可能已在引擎里建好显示，
+                // 必须连带终止进程释放它，避免留下 App 侧无法再寻址的孤儿虚拟屏。
+                state = null
+                host = null
+                runCatching { started.close() }
+                throw failure
+            }
         }
 
     suspend fun close() {
@@ -105,15 +117,16 @@ internal object VirtualScreenSessionManager {
             val activeHost = host
             state = null
             host = null
-            if (current != null) {
-                runCatching {
-                    activeHost?.request(
-                        JSONObject().put("action", "close").put("handleId", current.handleId),
-                        timeoutMs = 10_000,
-                    )
-                }
-            }
+            val acknowledged = current != null && activeHost != null && runCatching {
+                activeHost.request(
+                    JSONObject().put("action", "close").put("handleId", current.handleId),
+                    timeoutMs = 10_000,
+                ).requireOk()
+                true
+            }.getOrDefault(false)
             activeHost?.close()
+            // 引擎被长任务占住时不会响应 close；直接按 PID 强杀，进程退出即释放虚拟显示。
+            if (!acknowledged) VirtualScreenProcessHost.forceKill(current?.enginePid ?: 0)
         }
     }
 

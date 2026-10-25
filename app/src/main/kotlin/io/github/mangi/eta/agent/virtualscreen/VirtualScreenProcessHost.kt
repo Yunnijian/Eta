@@ -141,6 +141,21 @@ internal class VirtualScreenProcessHost(private val apkPath: String) {
     }.getOrDefault(false)
 
     private fun quote(value: String): String = "'" + value.replace("'", "'\\''") + "'"
+
+    companion object {
+        /** 引擎不响应 close 时，按 PID 直接强杀；进程退出后系统会释放它持有的虚拟显示。 */
+        fun forceKill(enginePid: Int) {
+            if (enginePid <= 0) return
+            SuCommandMode.entries.forEach { mode ->
+                runCatching {
+                    val child = ProcessBuilder(*mode.arguments("kill -9 $enginePid"))
+                        .redirectErrorStream(true)
+                        .start()
+                    if (!child.waitFor(3, TimeUnit.SECONDS)) child.destroyForcibly()
+                }
+            }
+        }
+    }
 }
 
 private enum class SuCommandMode {

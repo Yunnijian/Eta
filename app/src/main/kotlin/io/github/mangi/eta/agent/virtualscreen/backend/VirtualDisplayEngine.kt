@@ -16,6 +16,7 @@ import android.os.Build
 import android.os.Handler
 import android.os.HandlerThread
 import android.os.PowerManager
+import android.os.Process
 import android.os.SystemClock
 import android.view.Surface
 import org.json.JSONObject
@@ -92,6 +93,7 @@ internal class VirtualDisplayEngine : AutoCloseable {
             idleMinutes = config.idleTimeoutMinutes
             touched = SystemClock.elapsedRealtime()
             return geometry().put("ok", true).put("handleId", id)
+                .put("enginePid", Process.myPid())
                 .put("independentFocus", Build.VERSION.SDK_INT >= 34).put("screenOff", config.allowScreenOff)
         } catch (failure: Throwable) { release(); throw failure }
     }
