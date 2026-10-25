@@ -82,6 +82,83 @@ class VirtualScreenMcpHttpServerTest {
         assertEquals(404, status)
     }
 
+    @Test
+    fun mcpRequiresToken() {
+        val (status, _) = request(
+            "POST",
+            "/mcp",
+            null,
+            """{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}""",
+        )
+
+        assertEquals(401, status)
+    }
+
+    @Test
+    fun mcpInitializeReturnsProtocolAndServerInfo() {
+        val (status, body) = request(
+            "POST",
+            "/mcp",
+            TOKEN,
+            """{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"test","version":"1.0"}}}""",
+        )
+
+        assertEquals(200, status)
+        val response = JSONObject(body)
+        assertEquals("2.0", response.getString("jsonrpc"))
+        assertEquals(1, response.getInt("id"))
+        val result = response.getJSONObject("result")
+        assertEquals("2025-03-26", result.getString("protocolVersion"))
+        assertEquals("eta-virtual-screen", result.getJSONObject("serverInfo").getString("name"))
+    }
+
+    @Test
+    fun mcpToolsListExposesMcpSchema() {
+        val (status, body) = request(
+            "POST",
+            "/mcp",
+            TOKEN,
+            """{"jsonrpc":"2.0","id":2,"method":"tools/list"}""",
+        )
+
+        assertEquals(200, status)
+        val tools = JSONObject(body).getJSONObject("result").getJSONArray("tools")
+        val names = (0 until tools.length()).map { tools.getJSONObject(it).getString("name") }.toSet()
+        assertEquals(VirtualScreenTools.names, names)
+        val schema = tools.getJSONObject(0).getJSONObject("inputSchema")
+        assertEquals("object", schema.getString("type"))
+    }
+
+    @Test
+    fun mcpToolCallReturnsContentArray() {
+        val (status, body) = request(
+            "POST",
+            "/mcp",
+            TOKEN,
+            """{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"virtual_display","arguments":{"action":"status"}}}""",
+        )
+
+        assertEquals(200, status)
+        val result = JSONObject(body).getJSONObject("result")
+        assertEquals(false, result.getBoolean("isError"))
+        val content = result.getJSONArray("content")
+        assertEquals("text", content.getJSONObject(0).getString("type"))
+        assertTrue(content.getJSONObject(0).getString("text").contains("\"running\""))
+    }
+
+    @Test
+    fun mcpUnknownMethodReturnsJsonRpcError() {
+        val (status, body) = request(
+            "POST",
+            "/mcp",
+            TOKEN,
+            """{"jsonrpc":"2.0","id":4,"method":"not/a/method"}""",
+        )
+
+        assertEquals(200, status)
+        assertEquals(-32601, JSONObject(body).getJSONObject("error").getInt("code"))
+    }
+
     private fun request(
         method: String,
         path: String,

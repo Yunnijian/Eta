@@ -12,6 +12,7 @@ import java.net.ServerSocket
 import java.net.Socket
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
+import java.util.UUID
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -20,6 +21,9 @@ import org.json.JSONObject
  *
  * 默认只绑定回环地址；开启局域网访问后绑定 0.0.0.0。所有请求都校验
  * Bearer Token（/health 除外），工具调用串行执行，避免多个宿主争用同一块虚拟屏。
+ *
+ * 除自定义的 /tools、/tool 外，还提供标准 MCP Streamable HTTP 入口（POST /mcp），
+ * 便于任意 MCP 客户端直接接入。
  */
 internal class VirtualScreenMcpHttpServer(
     context: Context,
@@ -29,6 +33,8 @@ internal class VirtualScreenMcpHttpServer(
 ) : AutoCloseable {
     private val appContext = context.applicationContext
     private val tools = VirtualScreenTools(appContext)
+    private val sessionId = UUID.randomUUID().toString()
+    private val mcpTools: JSONArray by lazy(::buildMcpTools)
     private val server = ServerSocket().apply {
         reuseAddress = true
         // 默认显式绑定 IPv4 回环：getLoopbackAddress() 在部分机型返回 ::1，
@@ -67,7 +73,12 @@ internal class VirtualScreenMcpHttpServer(
         val parts = requestLine.split(' ')
         if (parts.size < 2) return respond(output, 400, errorBody("BAD_REQUEST"))
         val method = parts[0].uppercase()
-        val path = parts[1].substringBefore('?')
+        val target = parts[1]
+        val path = target.substringBefore('?').trimEnd('/').ifBlank { "/" }
+        val queryToken = target.substringAfter('?', "")
+            .split('&')
+            .firstOrNull { it.startsWith("token=") }
+            ?.removePrefix("token=")
         val headers = mutableMapOf<String, String>()
         while (true) {
             val line = readAsciiLine(input) ?: break
@@ -82,11 +93,14 @@ internal class VirtualScreenMcpHttpServer(
         if (method == "GET" && path == "/health") {
             return respond(output, 200, JSONObject().put("ok", true).put("port", port).toString())
         }
-        if (headers["authorization"] != "Bearer $token") {
+        if (headers["authorization"] != "Bearer $token" && queryToken != token) {
             return respond(output, 401, errorBody("UNAUTHORIZED"))
         }
 
         when {
+            method == "POST" && (path == "/mcp" || path == "/") -> handleMcp(input, headers, output)
+            method == "GET" && path == "/mcp" -> respond(output, 405, errorBody("SSE_UNSUPPORTED"), mcpHeaders())
+            method == "DELETE" && path == "/mcp" -> respond(output, 200, "{}", mcpHeaders())
             method == "GET" && path == "/tools" -> {
                 val array = JSONArray()
                 AgentVirtualScreenToolCatalog.appendTo(array)
@@ -146,6 +160,100 @@ internal class VirtualScreenMcpHttpServer(
         )
     }
 
+    /** 标准 MCP Streamable HTTP：JSON-RPC 2.0，请求-响应式，不提供服务器推送。 */
+    private fun handleMcp(input: InputStream, headers: Map<String, String>, output: OutputStream) {
+        val length = headers["content-length"]?.toIntOrNull() ?: 0
+        if (length <= 0 || length > MAX_BODY_BYTES) {
+            return respond(output, 413, errorBody("BODY_TOO_LARGE"), mcpHeaders())
+        }
+        val text = readExactly(input, length).toString(Charsets.UTF_8)
+        val payload = runCatching { JSONObject(text) }.getOrNull()
+            ?: return respond(output, 200, rpcError(null, -32700, "Parse error").toString(), mcpHeaders())
+        if (!payload.has("id")) return respond(output, 202, "", mcpHeaders())
+        val id = payload.opt("id")
+        val method = payload.optString("method")
+        val params = payload.optJSONObject("params") ?: JSONObject()
+        val body = when (method) {
+            "initialize" -> rpcResult(
+                id,
+                JSONObject()
+                    .put("protocolVersion", params.optString("protocolVersion").ifBlank { MCP_PROTOCOL_VERSION })
+                    .put("capabilities", JSONObject().put("tools", JSONObject().put("listChanged", false)))
+                    .put("serverInfo", JSONObject().put("name", "eta-virtual-screen").put("version", "1.0.0")),
+            )
+            "ping" -> rpcResult(id, JSONObject())
+            "tools/list" -> rpcResult(id, JSONObject().put("tools", mcpTools))
+            "tools/call" -> handleMcpToolCall(id, params)
+            "resources/list" -> rpcResult(id, JSONObject().put("resources", JSONArray()))
+            "prompts/list" -> rpcResult(id, JSONObject().put("prompts", JSONArray()))
+            else -> rpcError(id, -32601, "Method not found: $method")
+        }
+        respond(output, 200, body.toString(), mcpHeaders())
+    }
+
+    private fun handleMcpToolCall(id: Any?, params: JSONObject): JSONObject {
+        val name = params.optString("name")
+        if (name !in VirtualScreenTools.names) {
+            return rpcError(id, -32602, "Unknown tool: $name")
+        }
+        val arguments = params.optJSONObject("arguments") ?: JSONObject()
+        val result = runCatching { tools.execute(name, arguments) }.getOrElse { failure ->
+            return rpcResult(
+                id,
+                JSONObject()
+                    .put("content", JSONArray().put(textContent(failure.message ?: failure.javaClass.simpleName)))
+                    .put("isError", true),
+            )
+        }
+        val content = JSONArray().put(textContent(result.content))
+        result.images.forEach { image ->
+            dataUrlBase64(image.reference)?.let { data ->
+                content.put(
+                    JSONObject().put("type", "image").put("data", data).put("mimeType", image.mimeType),
+                )
+            }
+        }
+        val isError = runCatching { JSONObject(result.content).optBoolean("ok", true) }
+            .getOrDefault(true)
+            .not()
+        return rpcResult(id, JSONObject().put("content", content).put("isError", isError))
+    }
+
+    private fun buildMcpTools(): JSONArray {
+        val openAiStyle = JSONArray()
+        AgentVirtualScreenToolCatalog.appendTo(openAiStyle)
+        val converted = JSONArray()
+        for (index in 0 until openAiStyle.length()) {
+            val function = openAiStyle.getJSONObject(index).optJSONObject("function") ?: continue
+            converted.put(
+                JSONObject()
+                    .put("name", function.optString("name"))
+                    .put("description", function.optString("description"))
+                    .put(
+                        "inputSchema",
+                        function.optJSONObject("parameters")
+                            ?: JSONObject().put("type", "object").put("properties", JSONObject()),
+                    ),
+            )
+        }
+        return converted
+    }
+
+    private fun textContent(text: String): JSONObject =
+        JSONObject().put("type", "text").put("text", text)
+
+    private fun rpcResult(id: Any?, result: Any): JSONObject = JSONObject()
+        .put("jsonrpc", "2.0")
+        .put("id", id ?: JSONObject.NULL)
+        .put("result", result)
+
+    private fun rpcError(id: Any?, code: Int, message: String): JSONObject = JSONObject()
+        .put("jsonrpc", "2.0")
+        .put("id", id ?: JSONObject.NULL)
+        .put("error", JSONObject().put("code", code).put("message", message))
+
+    private fun mcpHeaders(): Map<String, String> = mapOf("Mcp-Session-Id" to sessionId)
+
     private fun dataUrlBase64(reference: String): String? {
         if (!reference.startsWith("data:", ignoreCase = true)) return null
         val marker = reference.indexOf("base64,", ignoreCase = true)
@@ -153,13 +261,21 @@ internal class VirtualScreenMcpHttpServer(
         return reference.substring(marker + "base64,".length).takeIf(String::isNotBlank)
     }
 
-    private fun respond(output: OutputStream, status: Int, body: String) {
+    private fun respond(
+        output: OutputStream,
+        status: Int,
+        body: String,
+        extraHeaders: Map<String, String> = emptyMap(),
+    ) {
         val bytes = body.toByteArray(Charsets.UTF_8)
         val reason = when (status) {
             200 -> "OK"
+            202 -> "Accepted"
+            204 -> "No Content"
             400 -> "Bad Request"
             401 -> "Unauthorized"
             404 -> "Not Found"
+            405 -> "Method Not Allowed"
             413 -> "Payload Too Large"
             else -> "Internal Server Error"
         }
@@ -167,6 +283,7 @@ internal class VirtualScreenMcpHttpServer(
             append("HTTP/1.1 ").append(status).append(' ').append(reason).append("\r\n")
             append("Content-Type: application/json; charset=utf-8\r\n")
             append("Content-Length: ").append(bytes.size).append("\r\n")
+            extraHeaders.forEach { (name, value) -> append(name).append(": ").append(value).append("\r\n") }
             append("Connection: close\r\n\r\n")
         }.toByteArray(Charsets.US_ASCII)
         runCatching {
@@ -214,5 +331,6 @@ internal class VirtualScreenMcpHttpServer(
     private companion object {
         const val SOCKET_TIMEOUT_MS = 120_000
         const val MAX_BODY_BYTES = 2 * 1024 * 1024
+        const val MCP_PROTOCOL_VERSION = "2025-06-18"
     }
 }
