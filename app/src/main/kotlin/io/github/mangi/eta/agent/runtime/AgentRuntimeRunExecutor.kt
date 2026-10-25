@@ -29,6 +29,7 @@ import io.github.mangi.eta.agent.tool.AgentToolCapabilities
 import io.github.mangi.eta.agent.tool.PendingSkillConflictCapabilityParser
 import io.github.mangi.eta.agent.tool.ToolExecutionDecision
 import io.github.mangi.eta.agent.voice.EtaAssistantOverlayService
+import io.github.mangi.eta.agent.virtualscreen.VirtualScreenSessionManager
 import io.github.mangi.eta.core.AndroidAgentLogger
 import io.github.mangi.eta.core.safeLogType
 import io.github.mangi.eta.data.repository.AgentMemoryRepository
@@ -277,6 +278,8 @@ internal class AgentRuntimeRunExecutor(
                     session.updateTranscript(transcript)
                 },
                 capabilitiesProvider = { AgentToolCapabilities.capture(appContext) },
+                preferVirtualScreen = VirtualScreenSessionManager.defaultDeviceScreen(appContext) ==
+                    VirtualScreenSessionManager.DefaultDeviceScreen.VIRTUAL,
                 prompt = request.prompt,
                 assistantScreenContext = request.assistantScreenContext,
                 toolExecutor = runToolExecutor,

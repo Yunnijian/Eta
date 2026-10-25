@@ -104,6 +104,12 @@ internal class VirtualDisplayEngine : AutoCloseable {
         if (action == "close") { release(); return ok().put("closed", true) }
         if (action == "cancel") { input?.cancelActive(); return ok() }
         if (action == "probe") return geometry().put("ok", true).put("interactive", power.isInteractive).put("locked", keyguard.isDeviceLocked)
+        if (action == "set_idle_timeout") {
+            idleMinutes = request.optInt("idleTimeoutMinutes", idleMinutes)
+            require(idleMinutes in 0..240) { "INVALID_IDLE_TIMEOUT" }
+            touched = SystemClock.elapsedRealtime()
+            return ok()
+        }
         touched = SystemClock.elapsedRealtime()
         check(allowOff || power.isInteractive && !keyguard.isDeviceLocked) { "SCREEN_OFF_UNAVAILABLE" }
         if (action != "launch") {

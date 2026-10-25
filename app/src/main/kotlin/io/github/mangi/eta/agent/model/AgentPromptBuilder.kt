@@ -17,10 +17,11 @@ internal object AgentPromptBuilder {
         skillContext: SkillContext,
         memoryContext: AgentMemoryContext = AgentMemoryContext.DISABLED,
         rootAvailable: Boolean = false,
+        preferVirtualScreen: Boolean = false,
         roleplayContext: RoleplayRunContext? = null,
         executionContext: TerminalExecutionContext? = null,
     ): JSONArray {
-        val messages = buildSystemMessages(config, skillContext, memoryContext, rootAvailable, roleplayContext, executionContext)
+        val messages = buildSystemMessages(config, skillContext, memoryContext, rootAvailable, preferVirtualScreen, roleplayContext, executionContext)
         history.forEach { item ->
             runCatching { AgentConversationCodec.toJsonObject(item) }.getOrNull()?.let(messages::put)
         }
@@ -38,6 +39,7 @@ internal object AgentPromptBuilder {
         skillContext: SkillContext,
         memoryContext: AgentMemoryContext,
         rootAvailable: Boolean,
+        preferVirtualScreen: Boolean = false,
         roleplayContext: RoleplayRunContext? = null,
         executionContext: TerminalExecutionContext? = null,
     ): JSONArray {
@@ -94,6 +96,12 @@ internal object AgentPromptBuilder {
                     "再显式设置 include_screenshot=true；补截图时保持 include_ui_tree=true，让截图、节点与新的 observation_id 来自同一次观察，" +
                     "禁止把新截图与旧节点混用；树被截断但节点语义仍有效时，优先提高 max_nodes，不要仅因截断请求截图；" +
                     "点击可见控件优先用 tap_element/tap_area；坐标工具必须写明 coordinate_space：看截图定位用 normalized（0–999），坐标来自 ui_nodes 用 screen；" +
+                    (if (preferVirtualScreen) {
+                        "用户没有明确指定屏幕时，设备操作默认使用虚拟屏：先确认 virtual_display 状态，需要时创建，再用 virtual_observe/virtual_tap/virtual_swipe/virtual_input 完成操作；" +
+                            "不要用主屏 observe_screen/tap_element/tap_area/type_text 等工具代替，只有用户明确要求操作主屏时才用主屏工具；"
+                    } else {
+                        "用户没有明确指定屏幕时，设备操作默认使用主屏；只有任务需要独立屏幕或用户明确要求时才用虚拟屏；"
+                    }) +
                     "需要独立屏幕时用 virtual_display 创建虚拟屏，再用 virtual_observe/virtual_tap/virtual_swipe/virtual_input；" +
                     "用户要求查看虚拟屏画面时，用 virtual_observe 的 mode=screenshot 或 both，截图会直接显示在工具卡片中供用户查看；虚拟屏坐标绝不能传给主屏 tap/swipe，" +
                     "调用节点工具时必须把该节点与同一次观察的 observation_id 一起传回，过期就重新观察；" +

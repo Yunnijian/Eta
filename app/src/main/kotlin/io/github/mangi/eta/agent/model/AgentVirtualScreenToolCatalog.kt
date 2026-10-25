@@ -28,7 +28,7 @@ internal object AgentVirtualScreenToolCatalog {
                                 .put("density", JSONObject().put("type", "integer").put("description", "虚拟屏 DPI，默认使用手机原生密度。"))
                                 .put("rotation", JSONObject().put("type", "integer").put("description", "0–3；默认 0。"))
                                 .put("allow_screen_off", JSONObject().put("type", "boolean").put("description", "锁屏/熄屏时是否保持虚拟屏；默认 false。"))
-                                .put("idle_timeout_minutes", JSONObject().put("type", "integer").put("description", "无操作自动关闭分钟数；默认 10。"))
+                                .put("idle_timeout_minutes", JSONObject().put("type", "integer").put("description", "无操作自动关闭分钟数；0 表示不超时；缺省取 App 内「虚拟屏会话时间」设置。"))
                                 .put("query", JSONObject().put("type", "string").put("description", "list_apps 的标签或包名过滤。"))
                                 .put("package", JSONObject().put("type", "string").put("description", "list_apps 的精确包名过滤。"))
                                 .put("component", JSONObject().put("type", "string").put("description", "launch_app 的 package/Activity，必须先用 list_apps 查到完整组件；不要只传包名。"))

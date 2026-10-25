@@ -18,21 +18,22 @@ import org.json.JSONObject
 /**
  * 本机 JSON 桥：供 Linux 侧的 stdio MCP 脚本转发工具目录与调用。
  *
- * 只绑定回环地址，并校验 Bearer Token；所有工具调用串行执行，避免多个宿主
- * 同时争用同一块虚拟屏。
+ * 默认只绑定回环地址；开启局域网访问后绑定 0.0.0.0。所有请求都校验
+ * Bearer Token（/health 除外），工具调用串行执行，避免多个宿主争用同一块虚拟屏。
  */
 internal class VirtualScreenMcpHttpServer(
     context: Context,
     requestedPort: Int,
     private val token: String,
+    bindAddress: String = "127.0.0.1",
 ) : AutoCloseable {
     private val appContext = context.applicationContext
     private val tools = VirtualScreenTools(appContext)
     private val server = ServerSocket().apply {
         reuseAddress = true
-        // 必须显式绑定 IPv4 回环：getLoopbackAddress() 在部分机型返回 ::1，
-        // 而 Linux 侧配置固定使用 127.0.0.1。
-        bind(InetSocketAddress(InetAddress.getByName("127.0.0.1"), requestedPort))
+        // 默认显式绑定 IPv4 回环：getLoopbackAddress() 在部分机型返回 ::1，
+        // 而 Linux 侧配置固定使用 127.0.0.1。开启局域网访问时改绑 0.0.0.0。
+        bind(InetSocketAddress(InetAddress.getByName(bindAddress), requestedPort))
     }
     private val executor = Executors.newSingleThreadExecutor { task ->
         Thread(task, "eta-vs-mcp-http").apply { isDaemon = true }
@@ -44,6 +45,8 @@ internal class VirtualScreenMcpHttpServer(
     private var closed = false
 
     val port: Int get() = server.localPort
+
+    val isRunning: Boolean get() = !closed && !server.isClosed
 
     fun start() {
         acceptThread.start()

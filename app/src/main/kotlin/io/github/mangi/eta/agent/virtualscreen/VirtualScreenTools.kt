@@ -39,7 +39,10 @@ internal class VirtualScreenTools(private val context: Context) {
                         density = args.optInt("density", defaults.density),
                         rotation = args.optInt("rotation", 0),
                         allowScreenOff = args.optBoolean("allow_screen_off", false),
-                        idleTimeoutMinutes = args.optInt("idle_timeout_minutes", 10),
+                        idleTimeoutMinutes = args.optInt(
+                            "idle_timeout_minutes",
+                            VirtualScreenSessionManager.idleTimeoutMinutes(context),
+                        ),
                     )
                     val state = runBlocking(Dispatchers.IO) {
                         VirtualScreenSessionManager.create(context, config)

@@ -22,9 +22,53 @@ internal data class VirtualScreenState(
  * 引擎自己在 idleTimeoutMinutes 后释放显示；这里检测到 DISPLAY_GONE 后会清空状态。
  */
 internal object VirtualScreenSessionManager {
+    const val DEFAULT_IDLE_TIMEOUT_MINUTES = 10
+    private const val PREFERENCES = "eta_virtual_screen"
+    private const val IDLE_TIMEOUT_KEY = "session_timeout_minutes"
+    private const val DEFAULT_SCREEN_KEY = "default_device_screen"
+
+    /** AI 操作设备时优先使用的屏幕；只影响系统提示中的默认操作路径。 */
+    enum class DefaultDeviceScreen(val value: String) {
+        MAIN("main"),
+        VIRTUAL("virtual"),
+    }
+
     private val mutex = Mutex()
     private var host: VirtualScreenProcessHost? = null
     private var state: VirtualScreenState? = null
+
+    fun idleTimeoutMinutes(context: Context): Int = preferences(context)
+        .getInt(IDLE_TIMEOUT_KEY, DEFAULT_IDLE_TIMEOUT_MINUTES)
+
+    fun defaultDeviceScreen(context: Context): DefaultDeviceScreen {
+        val stored = preferences(context).getString(DEFAULT_SCREEN_KEY, null)
+        return DefaultDeviceScreen.entries.firstOrNull { it.value == stored } ?: DefaultDeviceScreen.MAIN
+    }
+
+    fun setDefaultDeviceScreen(context: Context, screen: DefaultDeviceScreen) {
+        preferences(context).edit().putString(DEFAULT_SCREEN_KEY, screen.value).apply()
+    }
+
+    fun setIdleTimeoutMinutes(context: Context, minutes: Int) {
+        preferences(context).edit().putInt(IDLE_TIMEOUT_KEY, minutes.coerceIn(0, 240)).apply()
+    }
+
+    /** 把新的空闲超时同步给已经在跑的引擎；没有会话时只保存设置。 */
+    suspend fun applyIdleTimeout(minutes: Int): Boolean = mutex.withLock {
+        val current = state ?: return@withLock false
+        val activeHost = host ?: return@withLock false
+        runCatching {
+            activeHost.request(
+                JSONObject()
+                    .put("action", "set_idle_timeout")
+                    .put("handleId", current.handleId)
+                    .put("idleTimeoutMinutes", minutes),
+                timeoutMs = 5_000,
+            ).requireOk()
+        }.onSuccess {
+            state = current.copy(config = current.config.copy(idleTimeoutMinutes = minutes))
+        }.isSuccess
+    }
 
     suspend fun create(context: Context, config: VirtualScreenConfig = defaultConfig(context)): VirtualScreenState =
         mutex.withLock {
@@ -176,8 +220,16 @@ internal object VirtualScreenSessionManager {
         val width = (if (metrics.widthPixels > 0) metrics.widthPixels else fallback.widthPixels).coerceIn(320, 4096)
         val height = (if (metrics.heightPixels > 0) metrics.heightPixels else fallback.heightPixels).coerceIn(480, 4096)
         val density = (if (metrics.densityDpi > 0) metrics.densityDpi else fallback.densityDpi).coerceIn(120, 640)
-        return VirtualScreenConfig(width = width, height = height, density = density)
+        return VirtualScreenConfig(
+            width = width,
+            height = height,
+            density = density,
+            idleTimeoutMinutes = idleTimeoutMinutes(context),
+        )
     }
+
+    private fun preferences(context: Context) = context.applicationContext
+        .getSharedPreferences(PREFERENCES, Context.MODE_PRIVATE)
 
     private val RECOVERABLE_CODES = setOf("DISPLAY_GONE", "STALE_VIRTUAL_SCREEN", "ENGINE_EXITED", "ENGINE_PIPE_CLOSED")
 }

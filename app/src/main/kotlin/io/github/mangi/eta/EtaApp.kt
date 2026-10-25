@@ -7,6 +7,7 @@ import android.os.Looper
 import io.github.mangi.eta.agent.skill.SkillRuntime
 import io.github.mangi.eta.agent.device.RootAccess
 import io.github.mangi.eta.agent.terminal.TerminalRuntime
+import io.github.mangi.eta.agent.virtualscreen.mcp.VirtualScreenMcpRuntime
 import io.github.mangi.eta.config.Prefs
 import io.github.mangi.eta.core.AndroidAgentLogger
 import io.github.mangi.eta.core.safeLogType
@@ -60,6 +61,15 @@ class EtaApp : Application(), XposedServiceHelper.OnServiceListener {
         ProviderRepository.init(this)
         McpServerRepository.init(this)
         XposedServiceHelper.registerListener(this)
+        applicationScope.launch {
+            if (VirtualScreenMcpRuntime.isServiceEnabled(this@EtaApp)) {
+                val restored = VirtualScreenMcpRuntime.ensureStarted(this@EtaApp)
+                if (restored == null) {
+                    VirtualScreenMcpRuntime.setServiceEnabled(this@EtaApp, false)
+                    AndroidAgentLogger.warn("Virtual screen MCP restore failed")
+                }
+            }
+        }
         applicationScope.launch {
             try {
                 SpeechOssUpload(this@EtaApp).retryPending(this@EtaApp)

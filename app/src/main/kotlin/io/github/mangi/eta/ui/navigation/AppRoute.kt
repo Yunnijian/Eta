@@ -90,6 +90,12 @@ sealed interface AppRoute : NavKey {
     data class CommunityCatalogProvider(val catalogId: String) : AppRoute
 
     @Serializable
+    data object VirtualScreenSettings : AppRoute
+
+    @Serializable
+    data object VirtualScreenTools : AppRoute
+
+    @Serializable
     data object McpServers : AppRoute
 
     @Serializable

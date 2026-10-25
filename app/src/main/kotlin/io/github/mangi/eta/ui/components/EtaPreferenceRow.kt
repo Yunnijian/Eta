@@ -2,6 +2,7 @@ package io.github.mangi.eta.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -79,6 +80,7 @@ internal fun EtaPreference(
     enabled: Boolean = true,
     holdDownState: Boolean = false,
     onClick: (() -> Unit)? = null,
+    onLongClick: (() -> Unit)? = null,
     onClickLabel: String? = null,
     role: Role? = null,
     content: (@Composable ColumnScope.() -> Unit)? = null,
@@ -88,9 +90,22 @@ internal fun EtaPreference(
         startAction = startAction, endActions = endActions, bottomAction = bottomAction,
         titleColor = titleColor, summaryColor = summaryColor, titleContent = content,
         enabled = enabled, holdDownState = holdDownState,
-        interaction = if (onClick != null) {
-            Modifier.clickable(enabled = enabled, onClickLabel = onClickLabel, role = role, onClick = onClick)
-        } else Modifier,
+        interaction = when {
+            onLongClick != null -> Modifier.combinedClickable(
+                enabled = enabled,
+                onClickLabel = onClickLabel,
+                role = role,
+                onLongClick = onLongClick,
+                onClick = onClick ?: {},
+            )
+            onClick != null -> Modifier.clickable(
+                enabled = enabled,
+                onClickLabel = onClickLabel,
+                role = role,
+                onClick = onClick,
+            )
+            else -> Modifier
+        },
     )
 }
 

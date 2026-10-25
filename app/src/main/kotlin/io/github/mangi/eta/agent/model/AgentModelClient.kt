@@ -99,6 +99,7 @@ internal object AgentModelClient {
         additionalTools: JSONArray = JSONArray(),
         executionContext: TerminalExecutionContext? = null,
         capabilitiesProvider: () -> AgentToolCapabilities = { AgentToolCapabilities(rootAvailable = false) },
+        preferVirtualScreen: Boolean = false,
         sessionId: String = java.util.UUID.randomUUID().toString(),
         compactOnly: Boolean = false,
         operationId: String = sessionId,
@@ -121,6 +122,7 @@ internal object AgentModelClient {
             skillContext,
             memoryContext,
             rootAvailable = initialCapabilities.rootAvailable,
+            preferVirtualScreen = preferVirtualScreen,
             roleplayContext = roleplayContext,
             executionContext = executionContext,
         )
@@ -138,7 +140,8 @@ internal object AgentModelClient {
         val transcript = JSONArray()
         // 旧 history 中的无效消息可能在组装时被跳过，系统边界不能由 history 条数倒推。
         val systemCount = AgentPromptBuilder.buildSystemMessages(
-            config, skillContext, memoryContext, initialCapabilities.rootAvailable, roleplayContext, executionContext,
+            config, skillContext, memoryContext, initialCapabilities.rootAvailable,
+            preferVirtualScreen, roleplayContext, executionContext,
         ).length()
         fun toolsFor(capabilities: AgentToolCapabilities): JSONArray {
             if (rewriteReply) return JSONArray()
@@ -177,7 +180,8 @@ internal object AgentModelClient {
             val capabilities = capabilitiesProvider()
             if (capabilities.rootAvailable != promptRootAvailable) {
                 val systemMessages = AgentPromptBuilder.buildSystemMessages(
-                    config, skillContext, memoryContext, capabilities.rootAvailable, roleplayContext, executionContext,
+                    config, skillContext, memoryContext, capabilities.rootAvailable,
+                    preferVirtualScreen, roleplayContext, executionContext,
                 )
                 for (index in 0 until systemMessages.length()) {
                     messages.put(index, systemMessages.getJSONObject(index))
