@@ -1,6 +1,7 @@
 package io.github.mangi.eta.agent.virtualscreen.mcp
 
 import android.content.Context
+import io.github.mangi.eta.agent.virtualscreen.VirtualScreenSessionManager
 import io.github.mangi.eta.agent.virtualscreen.VirtualScreenTools
 import java.net.HttpURLConnection
 import java.net.URL
@@ -157,6 +158,20 @@ class VirtualScreenMcpHttpServerTest {
 
         assertEquals(200, status)
         assertEquals(-32601, JSONObject(body).getJSONObject("error").getInt("code"))
+    }
+
+    @Test
+    fun maxScreensDefaultsAndClampsToSupportedRange() {
+        assertEquals(VirtualScreenSessionManager.DEFAULT_MAX_SCREENS, VirtualScreenSessionManager.maxScreens(context))
+
+        VirtualScreenSessionManager.setMaxScreens(context, 3)
+        assertEquals(3, VirtualScreenSessionManager.maxScreens(context))
+
+        VirtualScreenSessionManager.setMaxScreens(context, 99)
+        assertEquals(VirtualScreenSessionManager.MAX_SCREENS_LIMIT, VirtualScreenSessionManager.maxScreens(context))
+
+        VirtualScreenSessionManager.setMaxScreens(context, 0)
+        assertEquals(1, VirtualScreenSessionManager.maxScreens(context))
     }
 
     private fun request(

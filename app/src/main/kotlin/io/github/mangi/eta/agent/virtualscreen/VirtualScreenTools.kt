@@ -17,7 +17,10 @@ import org.json.JSONObject
 /**
  * 虚拟屏工具族。与主屏工具完全分开：坐标始终是虚拟显示像素，不会落到手机主屏。
  */
-internal class VirtualScreenTools(private val context: Context) {
+internal class VirtualScreenTools(
+    private val context: Context,
+    private val sessionKey: String = "default",
+) {
     fun execute(name: String, args: JSONObject): AgentModelClient.ToolResult = when (name) {
         "virtual_display" -> display(args)
         "virtual_observe" -> observe(args)
@@ -45,7 +48,7 @@ internal class VirtualScreenTools(private val context: Context) {
                         ),
                     )
                     val state = runBlocking(Dispatchers.IO) {
-                        VirtualScreenSessionManager.create(context, config)
+                        VirtualScreenSessionManager.create(context, sessionKey, config)
                     }
                     textResult(
                         JSONObject()
@@ -61,11 +64,11 @@ internal class VirtualScreenTools(private val context: Context) {
                     )
                 }
                 "close" -> {
-                    runBlocking(Dispatchers.IO) { VirtualScreenSessionManager.close() }
+                    runBlocking(Dispatchers.IO) { VirtualScreenSessionManager.close(sessionKey) }
                     textResult(JSONObject().put("ok", true).put("running", false).toString())
                 }
                 "status" -> textResult(
-                    runBlocking(Dispatchers.IO) { VirtualScreenSessionManager.status(context) }
+                    runBlocking(Dispatchers.IO) { VirtualScreenSessionManager.status(context, sessionKey) }
                         .put("ok", true)
                         .toString(),
                 )
@@ -88,7 +91,7 @@ internal class VirtualScreenTools(private val context: Context) {
         val includeScreenshot = mode == "screenshot" || mode == "both"
         return try {
             val data = runBlocking(Dispatchers.IO) {
-                VirtualScreenSessionManager.observe(context)
+                VirtualScreenSessionManager.observe(context, sessionKey)
             }.requireOk()
             val displayId = data.getInt("displayId")
             val width = data.getInt("width")
@@ -146,7 +149,7 @@ internal class VirtualScreenTools(private val context: Context) {
         val x = args.getInt("x")
         val y = args.getInt("y")
         textResult(
-            runBlocking(Dispatchers.IO) { VirtualScreenSessionManager.tap(context, x, y) }
+            runBlocking(Dispatchers.IO) { VirtualScreenSessionManager.tap(context, sessionKey, x, y) }
                 .requireOk()
                 .put("ok", true)
                 .toString(),
@@ -167,7 +170,7 @@ internal class VirtualScreenTools(private val context: Context) {
         require(points.size in 2..64) { "points 需要 2–64 个点" }
         val duration = args.optInt("duration_ms", 300).coerceIn(100, 2_000)
         textResult(
-            runBlocking(Dispatchers.IO) { VirtualScreenSessionManager.swipe(context, points, duration) }
+            runBlocking(Dispatchers.IO) { VirtualScreenSessionManager.swipe(context, sessionKey, points, duration) }
                 .requireOk()
                 .put("ok", true)
                 .toString(),
@@ -183,7 +186,7 @@ internal class VirtualScreenTools(private val context: Context) {
         val text = args.optString("text")
         when {
             key != 0 -> textResult(
-                runBlocking(Dispatchers.IO) { VirtualScreenSessionManager.key(context, key) }
+                runBlocking(Dispatchers.IO) { VirtualScreenSessionManager.key(context, sessionKey, key) }
                     .requireOk()
                     .put("ok", true)
                     .toString(),
@@ -202,6 +205,7 @@ internal class VirtualScreenTools(private val context: Context) {
         val result = runBlocking(Dispatchers.IO) {
             VirtualScreenSessionManager.launch(
                 context = context,
+                key = sessionKey,
                 component = component,
                 uri = args.optString("uri").takeIf { it.isNotBlank() },
                 restartApproved = args.optBoolean("restart_approved", false),
@@ -228,7 +232,7 @@ internal class VirtualScreenTools(private val context: Context) {
 
     /** 文本走无障碍 ACTION_SET_TEXT；Root 引擎没有可用的文本注入实现。 */
     private fun writeText(value: String, replace: Boolean): AgentModelClient.ToolResult {
-        val displayId = VirtualScreenSessionManager.currentDisplayId()
+        val displayId = VirtualScreenSessionManager.currentDisplayId(sessionKey)
             ?: return errorResult("NO_VIRTUAL_SCREEN", "请先创建虚拟屏")
         val written = AgentAccessibilityService.current()
             ?.setVirtualScreenText(displayId, value, replace)

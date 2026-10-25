@@ -10,7 +10,7 @@ internal object AgentVirtualScreenToolCatalog {
             .put(
                 AgentToolSchema.function(
                     name = "virtual_display",
-                    description = "创建/关闭/查询虚拟屏，或在虚拟屏里列出、启动应用。虚拟屏独立于手机主屏，坐标与主屏工具不通用。",
+                    description = "创建/关闭/查询虚拟屏，或在虚拟屏里列出、启动应用。虚拟屏独立于手机主屏，坐标与主屏工具不通用；虚拟屏按会话隔离，同时存在的数量受 App 设置限制。",
                     parameters = JSONObject()
                         .put("type", "object")
                         .put(

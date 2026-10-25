@@ -94,7 +94,7 @@ Eta 本体可以读取项目、修改代码、运行命令并验证结果。如�
 
 提供商列表还可从 [models.dev](https://models.dev/) 社区目录挑选兼容的对话服务和模型；联网时更新目录，离线时使用本地缓存或随应用打包的快照。导入后的提供商默认停用，需核对服务地址、填写该服务的 API Key 并启用；Eta 读取目录时不发送已保存的 API Key。
 
-Provider 层支持 OpenAI-compatible Chat Completions、Responses API 和 Anthropic Messages，包括 SSE、Tool Calling、图片输入与推理内容。你可以自定义服务地址、请求头和请求体，拉取或手动添加模型（拉取后从尚未添加的模型中勾选需要的加入），调整上下文长度与思考档位。具体能力取决于模型与接口，部分 Responses 提供商还可开启服务端网页搜索。
+Provider 层支持 OpenAI-compatible Chat Completions、Responses API、Anthropic Messages 和 Gemini 原生 Interactions API，包括 SSE、Tool Calling、图片输入与推理内容。你可以自定义服务地址、请求头和请求体，拉取或手动添加模型（拉取后从尚未添加的模型中勾选需要的加入），调整上下文长度与思考档位。具体能力取决于模型与接口，部分 Responses 提供商还可开启服务端网页搜索。
 
 在设置中的模型提供商填写模型的上下文窗口大小（tokens）后才会启用自动压缩，从远端拉取时接口标注了窗口的模型会自动填好；未填写时照常对话，可手动压缩。“设置 → 上下文与扩展 → 自动压缩上下文”默认开启，修改从下一次运行生效，关闭后仍可手动压缩。自动压缩按服务商实际返回的输入用量与该窗口判断，不自动补窗或估算请求 token 数；服务商未返回输入用量时，可手动压缩。
 

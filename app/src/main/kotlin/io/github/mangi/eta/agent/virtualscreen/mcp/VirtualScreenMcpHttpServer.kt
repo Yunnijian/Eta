@@ -32,7 +32,7 @@ internal class VirtualScreenMcpHttpServer(
     bindAddress: String = "127.0.0.1",
 ) : AutoCloseable {
     private val appContext = context.applicationContext
-    private val tools = VirtualScreenTools(appContext)
+    private val tools = VirtualScreenTools(appContext, "mcp")
     private val sessionId = UUID.randomUUID().toString()
     private val mcpTools: JSONArray by lazy(::buildMcpTools)
     private val server = ServerSocket().apply {

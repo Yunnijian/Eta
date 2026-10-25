@@ -50,6 +50,9 @@ internal fun VirtualScreenSettingsScreen(
     var timeoutMinutes by remember {
         mutableStateOf(VirtualScreenSessionManager.idleTimeoutMinutes(appContext))
     }
+    var maxScreens by remember {
+        mutableStateOf(VirtualScreenSessionManager.maxScreens(appContext))
+    }
     val timeoutOptions = listOf(
         stringResource(R.string.virtual_screen_timeout_5) to 5,
         stringResource(R.string.virtual_screen_timeout_10) to 10,
@@ -115,6 +118,20 @@ internal fun VirtualScreenSettingsScreen(
                                 VirtualScreenSessionManager.applyIdleTimeout(minutes)
                             }
                         }
+                    },
+                )
+                EtaPreferenceDivider()
+                EtaDropdownPreference(
+                    title = stringResource(R.string.virtual_screen_count_title),
+                    summary = stringResource(R.string.virtual_screen_count_summary),
+                    items = (1..VirtualScreenSessionManager.MAX_SCREENS_LIMIT).map { count ->
+                        DropdownItem(text = stringResource(R.string.virtual_screen_count_value, count))
+                    },
+                    selectedIndex = (maxScreens - 1).coerceIn(0, VirtualScreenSessionManager.MAX_SCREENS_LIMIT - 1),
+                    onSelectedIndexChange = { index ->
+                        val count = index + 1
+                        maxScreens = count
+                        VirtualScreenSessionManager.setMaxScreens(appContext, count)
                     },
                 )
             }
