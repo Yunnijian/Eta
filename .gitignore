@@ -37,3 +37,7 @@ google-services.json
 
 # sherpa-onnx 本地识别引擎 AAR 由 scripts/fetch-sherpa-aar.sh 按 SHA-256 拉取
 app/libs/
+
+# AI 编程工具本地产物
+.commandcode/
+.trae/
