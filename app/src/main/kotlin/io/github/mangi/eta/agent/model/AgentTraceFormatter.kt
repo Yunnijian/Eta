@@ -34,7 +34,7 @@ internal class AgentTraceFormatter {
             "get_clipboard" -> "读取剪贴板"
             "search_apps" -> summarizeQueryArguments("搜索应用", toolCall.argumentsJson)
             "launch_app" -> "打开应用"
-            "get_current_context" -> "读取当前上下文"
+            "get_current_context" -> "读取时间与位置"
             "observe_screen" -> summarizeObservationArguments(toolCall.argumentsJson)
             "tap" -> summarizePointArguments("点击屏幕", toolCall.argumentsJson)
             "long_press" -> summarizePointArguments("长按屏幕", toolCall.argumentsJson)
@@ -282,6 +282,12 @@ internal class AgentTraceFormatter {
         }
         if (json?.optString("status") == "unconfirmed") return "操作已提交，效果未确认"
         if (!isSuccessResult(result)) return summarizeFailure(json)
+        if (json != null) {
+            val summary = AgentDeviceResultFormatter.summarize(toolName, json)
+                ?: AgentPhoneResultFormatter.summarize(toolName, json)
+                ?: AgentFileResultFormatter.summarize(toolName, json)
+            if (summary != null) return summary
+        }
         return when (toolName) {
             BROWSER_TOOL_NAME -> json?.let(::summarizeBrowserResult) ?: "浏览器操作完成"
             AgentSubagentToolCatalog.TOOL_NAME -> json?.let(::summarizeSubagentResult) ?: "完成"
@@ -291,6 +297,9 @@ internal class AgentTraceFormatter {
                 json?.let { summarizeMemoryResult(toolName, it) } ?: "完成"
             "search_apps" -> json?.let(::summarizeSearchAppsResult) ?: "完成"
             "launch_app" -> json?.let(::summarizeLaunchAppResult) ?: "已打开"
+            "skills_list", "skills_list_curated", "skills_inspect_github", "skills_install_from_github" -> json?.let {
+                summarizeSkillResult(toolName, it) ?: summarizeGenericResult(it, result)
+            } ?: "完成"
             else -> json?.let { summarizeGenericResult(it, result) } ?: "完成"
         }
     }
@@ -382,6 +391,17 @@ internal class AgentTraceFormatter {
             else -> "完成"
         }
 
+    private fun summarizeSkillResult(toolName: String, json: JSONObject): String? {
+        if (toolName == "skills_install_from_github") {
+            val installed = json.optJSONArray("installed") ?: return null
+            return "已安装 ${installed.length()} 个技能" +
+                if (json.optString("available") == "next_turn") " · 下一轮可用" else ""
+        }
+        val items = json.optJSONArray("items") ?: return null
+        val installed = (0 until items.length()).count { items.optJSONObject(it)?.opt("installed") == true }
+        return "找到 ${items.length()} 个技能" + if (installed > 0) " · $installed 个已安装" else ""
+    }
+
     private fun summarizeGenericResult(
         json: JSONObject,
         result: AgentModelClient.ToolResult,
@@ -389,6 +409,7 @@ internal class AgentTraceFormatter {
         buildList {
             add(if (json.has("verified") && !json.optBoolean("verified")) "已执行，效果未确认" else "完成")
             json.optJSONArray("entries")?.let { add("${it.length()} 个条目") }
+            (json.optJSONArray("items") ?: json.optJSONArray("results"))?.let { add("返回 ${it.length()} 条结果") }
             json.optJSONArray("matches")?.let { add("${it.length()} 个匹配") }
             if (json.has("bytes_read")) add("已读 ${json.optLong("bytes_read")} 字节")
             if (json.has("replacements")) add("替换 ${json.optInt("replacements")} 处")

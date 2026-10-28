@@ -230,11 +230,13 @@ Shell 子进程在校验失败或取消时可能提前关闭输入管道，执�
 
 ## 结构化设备查询与操作
 
+`get_current_context` 在操作记录中显示为“读取时间与位置”，结果保留手机返回的本地时间和 UTC 偏移。位置显示系统最近一次位置记录及其年龄；未授权、系统定位关闭或没有缓存位置时明确提示，不将缓存位置表述为实时定位，也不额外解析城市或地址。
+
 `inspect_app` 属于设备直达工具，优先通过 PackageManager 查询精确包名，不要求目标应用具有桌面入口。结果包含版本、UID、安装来源及路径、启用/停止状态与分页权限列表。查询仅针对 Eta 所属 Android 用户；`user_id` 缺失时使用该用户，指定其他用户或工作资料时返回 `USER_SCOPE_UNSUPPORTED`。缺少包可见性时不会把查询不到直接断言成未安装，安装来源不可读也会单独标记。
 
 `get_logcat` 仍属于需要 Root 的敏感读取工具。它先按 PID、tag、最低 level 与 buffer 采集最近 `scan_lines` 条记录，再在样本中按 ISO 8601 的 `since` 和字面 `query` 筛选，最多返回 `max_lines` 条及有限文本。日志作用域为设备，不能用 `user_id` 冒充用户隔离。结果的采集起止时间、`scan_limited`、`capture_truncated`、`has_more` 与 `complete_within_scan` 分别说明采集和返回范围；`has_more` 只表示样本内有未返回匹配。日志源是环形缓冲区，`history_complete` 始终为 false，无匹配不代表更早记录不存在。
 
-`get_setting` 与系统写操作统一指定或报告 `user_id`，不再把 Root 命令中的前台用户当作 Eta 所属用户；当前不提供跨资料后端。`global` 设置和 Wi-Fi/蓝牙属于设备级状态。`set_setting`、`set_device_state`、`app_state_control`、`set_volume` 返回 `before`、`after`、`expected`、`changed` 与 `verified`，命令退出 0 或 API 接受请求不再等同于目标状态生效。读回未达到目标或过渡状态尚未结束时返回 `STATE_CHANGE_UNCONFIRMED`；无法比较前后值时 `changed` 为 null。已有目标状态可以验证成功而 `changed=false`。设置原始值按敏感工具数据处理。
+`get_setting` 与系统写操作统一指定或报告 `user_id`，不再把 Root 命令中的前台用户当作 Eta 所属用户；当前不提供跨资料后端。`global` 设置和 Wi-Fi/蓝牙属于设备级状态。`set_setting`、`set_device_state`、`app_state_control`、`set_volume` 返回 `before`、`after`、`expected`、`changed` 与 `verified`，命令退出 0 或 API 接受请求不再等同于目标状态生效。读回未达到目标或过渡状态尚未结束时返回 `STATE_CHANGE_UNCONFIRMED`；无法比较前后值时 `changed` 为 null。已有目标状态可以验证成功而 `changed=false`。已验证的设备操作在记录中显示具体目标及前后状态，例如“自动旋转：关闭 → 开启”；音量、亮度和息屏时间使用读回值及对应单位，未知前值不推断为零或关闭。通用设置仅对语义明确的固定设置键展示值，其余保持不含原始值的修改摘要。
 
 ## 个人上下文与一方应用操作
 
@@ -379,6 +381,8 @@ Skill 安装工具始终向模型提供，不再根据顶层用户输入的固�
 待确认结果和外部入口归档会把完整脱敏 transcript 一并写入 Room。显式迁移为旧记录补默认字段并搬迁大文本；分块读写集中在 DAO，协议投影集中在 Runtime，Provider 不负责持久化。恢复幂等性依据已应用 run 标记，不能靠比较 history 尾部文本猜测。旧结果缺少 transcript 时仍可用已有 assistant 内容合成兼容历史。
 
 主界面的 `AgentAppState` 由 Activity 级 ViewModel 持有，配置变更只重建 Compose UI，不替换正在等待 Runtime 的客户端。用户消息先提交到 Room，再启动可能产生设备副作用的 run。Runtime 为 App 会话维护追加式在途 checkpoint：文本增量有界合并，结构化边界先落盘再发布；块结束通常只保存边界和字符数，仅在终态修正流式内容时保存替换正文。工具调用的原始参数增量和原始结果不进入 UI 事件日志，UI 已展示的参数摘要、脱敏终端命令与结果摘要会随工具状态保存；完整普通工具交换另存于脱敏 transcript。终态先封存 checkpoint 再提交 outbox，只有会话成功落盘并 ACK 结果后才同时删除 outbox 与 checkpoint。
+
+设备、文件和一方应用的专用结果摘要按工具语义展示已验证的状态变化、已完成的动作或本次返回数量。闹钟和计时器的 Intent 派发仅显示请求已提交；日历更新只列改动字段类别，便签回收不表述为永久删除。文件摘要显示读写规模、替换次数或匹配数量，并保留分页与扫描范围限制；技能安装显示下一轮可用。这些专用摘要不包含文件正文、路径、日历和便签内容、网络名称或任意设置原始值，未知字段不推断为零或关闭。既有历史记录保留原摘要，不重新执行工具或补造变更详情。
 
 App 恢复时以 `checkpoint + outbox + active session` 统一对账，不再用进程是否变化推断 run 状态。有 outbox 时先恢复工具轨迹，再用终态结果定稿；Runtime 仍 active 时，新 UI 会先整体恢复内存中的安全事件，再订阅实时事件与最终结果；只有既无终态又不 active 的 run 才标记为中断。恢复不会自动重放任何工具，也不会把半截助手回复加入后续模型 history。
 
