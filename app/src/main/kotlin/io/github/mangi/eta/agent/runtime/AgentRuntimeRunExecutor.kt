@@ -16,6 +16,8 @@ import io.github.mangi.eta.agent.memory.AgentMemoryContextBuilder
 import io.github.mangi.eta.agent.memory.ConversationMemoryPins
 import io.github.mangi.eta.agent.roleplay.CharacterMemoryTools
 import io.github.mangi.eta.agent.roleplay.RoleplayRunContext
+import io.github.mangi.eta.agent.subagent.AgentSubagentToolCatalog
+import io.github.mangi.eta.agent.subagent.SubagentExecutor
 import io.github.mangi.eta.agent.mcp.McpRunSnapshot
 import io.github.mangi.eta.agent.mcp.McpToolExecutor
 import io.github.mangi.eta.agent.mcp.RoutingToolExecutor
@@ -34,6 +36,7 @@ import io.github.mangi.eta.agent.virtualscreen.VirtualScreenSessionManager
 import io.github.mangi.eta.core.AndroidAgentLogger
 import io.github.mangi.eta.core.safeLogType
 import io.github.mangi.eta.data.repository.AgentMemoryRepository
+import io.github.mangi.eta.data.repository.RuntimeConfigRepository
 import kotlinx.coroutines.runBlocking
 import org.json.JSONArray
 import org.json.JSONObject
@@ -255,12 +258,55 @@ internal class AgentRuntimeRunExecutor(
                     journal + session.transcript
                 }
             }
+            val subagentAllowed = {
+                request.config.subagentTools && currentPermissions().subagentTools
+            }
+            val subagentExecutor = SubagentExecutor(
+                conversationKey = browserKey,
+                parentController = runController,
+                configProvider = {
+                    val rawSubagentConfig = runBlocking {
+                        RuntimeConfigRepository.subagentRuntimeConfig(request.config)
+                    }
+                    AgentRuntimePolicy.constrain(rawSubagentConfig, currentPermissions())
+                },
+                capabilitiesProvider = { AgentToolCapabilities.capture(appContext) },
+                baseToolExecutor = routingExecutor,
+                skillContext = skillContext,
+                memoryContext = memoryContext,
+                mcpTools = mcpTools,
+                executionContext = executor.terminalExecutionContext,
+                onProgress = { progressEvent ->
+                    acceptEvent(
+                        session,
+                        progressEvent,
+                        archivedEvents,
+                        entrySurfaceGuard,
+                        checkpointRecorder,
+                    )
+                },
+            )
             val runTools = JSONArray(mcpTools.toString()).also { tools ->
+                if (subagentAllowed()) AgentSubagentToolCatalog.appendSchemas(tools)
                 if (historyTool != null) tools.put(AgentConversationToolCatalog.schema())
                 if (characterMemoryTools != null && memoryEnabled) CharacterMemoryTools.appendSchemas(tools)
             }
             val runToolExecutor = AgentModelClient.ToolExecutor { call ->
-                if (call.name == AgentConversationToolCatalog.READ_HISTORY && historyTool != null) {
+                if (call.name in AgentSubagentToolCatalog.names) {
+                    if (!subagentAllowed()) {
+                        AgentModelClient.ToolResult(
+                            JSONObject()
+                                .put("ok", false)
+                                .put("code", "SUBAGENT_DISABLED")
+                                .put("message", "Subagent 权限已关闭")
+                                .toString(),
+                        )
+                    } else if (call.name == AgentSubagentToolCatalog.PROFILE_TOOL_NAME) {
+                        subagentExecutor.executeProfileManagement(call)
+                    } else {
+                        subagentExecutor.execute(call.round, call)
+                    }
+                } else if (call.name == AgentConversationToolCatalog.READ_HISTORY && historyTool != null) {
                     historyTool.execute(call)
                 } else if (call.name in CharacterMemoryTools.NAMES && characterMemoryTools != null) {
                     characterMemoryTools.execute(call)

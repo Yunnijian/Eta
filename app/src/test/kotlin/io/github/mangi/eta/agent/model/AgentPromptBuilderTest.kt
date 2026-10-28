@@ -53,6 +53,9 @@ class AgentPromptBuilderTest {
         assertTrue(terminal.contains("/eta/custom workspace"))
         assertTrue(terminal.contains("debian"))
         assertTrue(terminal.contains("identity=user"))
+        assertTrue(terminal.contains("不要用 & 起后台进程"))
+        assertTrue(terminal.contains("common_tools"))
+        assertTrue(terminal.contains("profiles"))
         assertTrue(terminal.contains("terminal_job"))
         assertTrue(terminal.contains("terminal_daemon"))
         assertFalse(terminal.contains("async=true"))
@@ -237,6 +240,25 @@ class AgentPromptBuilderTest {
         assertEquals("现在改用英文回答", messages.getJSONObject(messages.length() - 1).getString("content"))
     }
 
+    @Test
+    fun subagentGuidanceOnlyAppearsWhenSubagentToolsAreEnabled() {
+        val disabled = AgentPromptBuilder.buildSystemMessages(
+            config = modelConfig("", terminalTools = false, browserTools = false),
+            skillContext = SkillContext.EMPTY,
+            memoryContext = AgentMemoryContext.DISABLED,
+            rootAvailable = false,
+        )
+        assertFalse(disabled.systemContents().any { it.contains("可调用 subagent 派发子智能体") })
+
+        val enabled = AgentPromptBuilder.buildSystemMessages(
+            config = modelConfig("", terminalTools = false, browserTools = false).copy(subagentTools = true),
+            skillContext = SkillContext.EMPTY,
+            memoryContext = AgentMemoryContext.DISABLED,
+            rootAvailable = false,
+        )
+        assertTrue(enabled.systemContents().any { it.contains("可调用 subagent 派发子智能体") })
+    }
+
     private fun modelConfig(
         systemPrompt: String,
         terminalTools: Boolean,
@@ -249,6 +271,7 @@ class AgentPromptBuilderTest {
             systemPrompt = systemPrompt,
             terminalTools = terminalTools,
             browserTools = browserTools,
+            subagentTools = false,
         )
 
     private fun JSONArray.roles(): List<String> =

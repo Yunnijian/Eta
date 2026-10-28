@@ -81,6 +81,7 @@ import io.github.mangi.eta.ui.screens.mcp.McpServersScreen
 import io.github.mangi.eta.ui.screens.memory.AgentMemoryScreen
 import io.github.mangi.eta.ui.screens.permissions.PermissionHealthScreen
 import io.github.mangi.eta.ui.screens.skills.AgentSkillsScreen
+import io.github.mangi.eta.ui.screens.subagent.SubagentSettingsScreen
 import io.github.mangi.eta.ui.screens.terminal.LinuxEnvironmentScreen
 import io.github.mangi.eta.ui.screens.virtualscreen.VirtualScreenSettingsScreen
 import io.github.mangi.eta.ui.screens.virtualscreen.VirtualScreenToolsScreen
@@ -511,6 +512,9 @@ fun AgentAppRoot(
             }
             entry<AppRoute.WebToolsSettings>(swipeDismiss = swipeDismiss) {
                 WebToolsSettingsScreen(onBack = ::popRoute)
+            }
+            entry<AppRoute.Subagents>(swipeDismiss = swipeDismiss) {
+                SubagentSettingsScreen(onBack = ::popRoute)
             }
             entry<AppRoute.Skills>(swipeDismiss = swipeDismiss) {
                 LaunchedEffect(Unit) {

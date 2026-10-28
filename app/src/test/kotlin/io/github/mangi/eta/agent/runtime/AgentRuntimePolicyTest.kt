@@ -23,6 +23,7 @@ class AgentRuntimePolicyTest {
                 browserTools = false,
                 thinking = false,
                 autoCompaction = false,
+                subagentTools = false,
             ),
             AgentRuntimePolicy.permissions(null),
         )
@@ -55,6 +56,7 @@ class AgentRuntimePolicyTest {
                 browserTools = false,
                 thinking = false,
                 autoCompaction = false,
+                subagentTools = false,
             ),
             AgentRuntimePolicy.permissions(preferences),
         )

@@ -182,11 +182,24 @@ internal sealed interface AgentEvent {
         val success: Boolean? = null,
         /** 已落盘的截图展示副本路径；只在 UI 侧使用，不进入模型请求。 */
         val imagePaths: List<String> = emptyList(),
+        val command: String? = null,
     ) : AgentEvent {
         override fun toLogLine(): String =
             "tool_finished round=$round, name=${name.toSafeLogToken()}, " +
                 "${resultSummary.toSafeResultLogFields()}, images=$imageCount, image_bytes=$imageBytes, " +
                 "display_images=${imagePaths.size}"
+    }
+
+    data class SubagentProgress(
+        val round: Int,
+        val toolCallId: String,
+        val subagentId: String,
+        val subagentType: String,
+        val snapshotJson: String,
+    ) : AgentEvent {
+        override fun toLogLine(): String =
+            "subagent_progress round=$round, id=${subagentId.toSafeLogToken()}, " +
+                "type=${subagentType.toSafeLogToken()}, chars=${snapshotJson.length}"
     }
 
     data class HostedToolStarted(

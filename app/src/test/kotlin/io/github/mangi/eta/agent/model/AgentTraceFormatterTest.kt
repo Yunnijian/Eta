@@ -484,6 +484,22 @@ class AgentTraceFormatterTest {
             ),
         )
         assertEquals("终端 · 关闭终端", closed)
+
+        val multiLineOutput = (1..12).joinToString("\n") { "line-$it" }
+        val multiLinePreview = formatter.summarizeResult(
+            "terminal",
+            AgentModelClient.ToolResult(
+                content = JSONObject()
+                    .put("ok", true)
+                    .put("tool", "terminal")
+                    .put("exit_code", 0)
+                    .put("stdout", multiLineOutput)
+                    .toString(),
+            ),
+        )
+        assertTrue(multiLinePreview.contains("line-10"))
+        assertFalse(multiLinePreview.contains("line-11"))
+        assertTrue(multiLinePreview.endsWith("\n…"))
     }
 
     @Test
@@ -507,7 +523,7 @@ class AgentTraceFormatterTest {
 
     @Test
     fun terminalResultPreviewIsBounded() {
-        val longOutput = (1..10).joinToString("\n") { "line-$it-${"x".repeat(100)}" }
+        val longOutput = (1..15).joinToString("\n") { "line-$it-${"x".repeat(100)}" }
         val summary = formatter.summarizeResult(
             "run_command",
             AgentModelClient.ToolResult(
@@ -522,8 +538,8 @@ class AgentTraceFormatterTest {
         )
 
         val previewLines = summary.lines()
-        // 状态行 + 最多 3 行预览 + 省略标记
-        assertTrue(previewLines.size <= 5)
+        // 状态行 + 最多 10 行预览 + 省略标记（与 ToolActivityDetail 的 MAX_RESULT_LINES = 12 对齐）
+        assertTrue(previewLines.size <= 12)
         assertTrue(summary.endsWith("…"))
         assertTrue(summary.length < longOutput.length)
     }
