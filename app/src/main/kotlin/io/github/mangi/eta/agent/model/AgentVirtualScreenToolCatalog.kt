@@ -10,7 +10,7 @@ internal object AgentVirtualScreenToolCatalog {
             .put(
                 AgentToolSchema.function(
                     name = "virtual_display",
-                    description = "创建/关闭/查询虚拟屏，或在虚拟屏里列出、启动应用。虚拟屏独立于手机主屏，坐标与主屏工具不通用；虚拟屏按会话隔离，同时存在的数量受 App 设置限制。",
+                    description = "创建/关闭/查询虚拟屏，或在虚拟屏里列出、启动应用。虚拟屏独立于手机主屏，坐标与主屏工具不通用；虚拟屏按会话隔离，同时存在的数量受 App 设置限制。目标应用已在手机主屏或后台运行时，launch_app 会把它的任务整体接管到虚拟屏，不重启、不丢状态；close 会把它原样送回后台并恢复用户原来的界面，handoff 则把它迁回主屏并保持前台展示结果。",
                     parameters = JSONObject()
                         .put("type", "object")
                         .put(
@@ -20,8 +20,8 @@ internal object AgentVirtualScreenToolCatalog {
                                     "action",
                                     JSONObject()
                                         .put("type", "string")
-                                        .put("enum", JSONArray(listOf("create", "close", "status", "list_apps", "launch_app")))
-                                        .put("description", "create 创建虚拟屏；close 关闭；status 查询；list_apps 列出可启动应用；launch_app 启动应用。"),
+                                        .put("enum", JSONArray(listOf("create", "close", "handoff", "status", "list_apps", "launch_app")))
+                                        .put("description", "create 创建虚拟屏；close 关闭并把接管的应用归还后台；handoff 把应用交还主屏并保持前台展示结果；status 查询；list_apps 列出可启动应用；launch_app 启动或接管应用。"),
                                 )
                                 .put("width", JSONObject().put("type", "integer").put("description", "虚拟屏宽，默认使用手机原生宽度。"))
                                 .put("height", JSONObject().put("type", "integer").put("description", "虚拟屏高，默认使用手机原生高度。"))
@@ -33,7 +33,7 @@ internal object AgentVirtualScreenToolCatalog {
                                 .put("package", JSONObject().put("type", "string").put("description", "list_apps 的精确包名过滤。"))
                                 .put("component", JSONObject().put("type", "string").put("description", "launch_app 的 package/Activity，必须先用 list_apps 查到完整组件；不要只传包名。"))
                                 .put("uri", JSONObject().put("type", "string").put("description", "launch_app 可选的 VIEW uri。"))
-                                .put("restart_approved", JSONObject().put("type", "boolean").put("description", "目标应用已在主屏运行时是否允许强制重启；默认 false。")),
+                                .put("restart_approved", JSONObject().put("type", "boolean").put("description", "仅在无法整任务接管时作为兜底：是否允许强制重启已在运行的应用；默认 false。"))
                         )
                         .put("required", JSONArray().put("action")),
                 ),

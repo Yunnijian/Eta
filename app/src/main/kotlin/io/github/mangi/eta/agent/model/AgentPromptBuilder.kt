@@ -98,6 +98,9 @@ internal object AgentPromptBuilder {
                             "需要画面时设置 mode=screenshot 或 both；截图与节点必须来自同一次观察；树被截断时提高 max_nodes。" +
                             "坐标一律是虚拟屏像素，交给 virtual_tap/virtual_swipe；文本用 virtual_input，支持中文；按键用 virtual_input 的 key。" +
                             "打开应用先 virtual_display list_apps 查完整组件，再 virtual_display launch_app。" +
+                            "目标应用已在手机主屏或后台运行时，launch_app 会直接把它的任务整体接管进虚拟屏，不重启、不丢状态；只有返回 APP_RESTART_CONFIRMATION_REQUIRED 时才考虑 restart_approved 兜底。" +
+                            "任务完成后按用户意图收尾：用户没有要求在主屏查看结果时，调用 virtual_display close，应用会回到后台、用户回到原来的界面；" +
+                            "用户明确要求把结果留在主屏时，调用 virtual_display handoff，应用会迁回主屏并保持前台。不要用 force-stop 或重新启动应用来结束。" +
                             "虚拟屏坐标绝不能传给主屏工具；用户明确要求操作主屏时，说明需要到设置中把默认操作屏幕改回主屏。" +
                             "每个动作都要根据结果判断是否生效，失败时先重新 virtual_observe，再换目标或方式，不要原样重复。" +
                             "屏幕操作依赖 Eta 无障碍服务；返回 ACCESSIBILITY_UNAVAILABLE、ACCESSIBILITY_PROTECTION_UNAVAILABLE 或 ACCESSIBILITY_REPAIR_TIMEOUT 时说明动作未执行，" +

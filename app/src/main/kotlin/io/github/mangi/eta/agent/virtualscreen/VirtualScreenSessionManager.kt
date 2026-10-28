@@ -151,18 +151,38 @@ internal object VirtualScreenSessionManager {
 
     suspend fun close(key: String) {
         mutex.withLock {
-            val session = sessions.remove(key) ?: return@withLock
+            val session = sessions[key] ?: return@withLock
             val current = session.state
-            val acknowledged = runCatching {
+            val response = runCatching {
                 session.host.request(
                     JSONObject().put("action", "close").put("handleId", current.handleId),
                     timeoutMs = 10_000,
-                ).requireOk()
-                true
-            }.getOrDefault(false)
+                )
+            }.getOrNull()
+            val ok = response?.optBoolean("ok") == true
+            // 归还失败时必须保留引擎与虚拟屏，避免关闭管道导致接管的用户应用被销毁。
+            if (!ok && response?.optString("code") == "RETURN_TO_MAIN_FAILED") {
+                throw VirtualScreenException("RETURN_TO_MAIN_FAILED", response.optString("detail"))
+            }
+            sessions.remove(key)
             session.host.close()
             // 引擎被长任务占住时不会响应 close；直接按 PID 强杀，进程退出即释放虚拟显示。
-            if (!acknowledged) VirtualScreenProcessHost.forceKill(current.enginePid)
+            if (!ok) VirtualScreenProcessHost.forceKill(current.enginePid)
+        }
+    }
+
+    /** 把虚拟屏上的应用交还主屏并保持前台，供用户直接查看结果。 */
+    suspend fun handoff(key: String) {
+        mutex.withLock {
+            val session = sessions[key]
+                ?: throw VirtualScreenException("NO_VIRTUAL_SCREEN", "请先创建虚拟屏")
+            val current = session.state
+            session.host.request(
+                JSONObject().put("action", "handoff").put("handleId", current.handleId),
+                timeoutMs = 15_000,
+            ).requireOk()
+            sessions.remove(key)
+            session.host.close()
         }
     }
 

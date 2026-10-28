@@ -67,6 +67,16 @@ internal class VirtualScreenTools(
                     runBlocking(Dispatchers.IO) { VirtualScreenSessionManager.close(sessionKey) }
                     textResult(JSONObject().put("ok", true).put("running", false).toString())
                 }
+                "handoff" -> {
+                    runBlocking(Dispatchers.IO) { VirtualScreenSessionManager.handoff(sessionKey) }
+                    textResult(
+                        JSONObject()
+                            .put("ok", true)
+                            .put("running", false)
+                            .put("shown_on_main", true)
+                            .toString(),
+                    )
+                }
                 "status" -> textResult(
                     runBlocking(Dispatchers.IO) { VirtualScreenSessionManager.status(context, sessionKey) }
                         .put("ok", true)
@@ -74,7 +84,7 @@ internal class VirtualScreenTools(
                 )
                 "list_apps" -> listApps(args)
                 "launch_app" -> launch(args)
-                else -> errorResult("UNKNOWN_ACTION", "virtual_display.action 只支持 create/close/status/list_apps/launch_app")
+                else -> errorResult("UNKNOWN_ACTION", "virtual_display.action 只支持 create/close/handoff/status/list_apps/launch_app")
             }
         } catch (failure: VirtualScreenException) {
             errorResult(failure.code, failure.detail ?: failure.code)

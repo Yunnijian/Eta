@@ -41,6 +41,11 @@ internal class VirtualDisplayEngine : AutoCloseable {
     private var wakeRenewed = 0L
     private var id = ""
     private val hostedTasks = mutableSetOf<Int>()
+    /** 从手机主屏接管过来的任务；关闭虚拟屏前必须迁回主屏，避免被 DESTROY_CONTENT_ON_REMOVAL 销毁。 */
+    private val adoptedTasks = mutableSetOf<Int>()
+    private var primaryTaskId: Int? = null
+    /** 接管前的手机主屏顶层任务；归还时恢复它，让用户回到原来的界面。 */
+    private var restoreFocusTaskId: Int? = null
     private var allowOff = false
     @Volatile private var touched = SystemClock.elapsedRealtime()
     private var idleMinutes = 20
@@ -56,7 +61,10 @@ internal class VirtualDisplayEngine : AutoCloseable {
 
     @Synchronized private fun releaseIfIdle() {
         // An input or a newly created display may arrive while this worker waits.
-        if(display != null && idleMinutes > 0 && SystemClock.elapsedRealtime()-touched > idleMinutes*60_000L) release()
+        // 接管的用户应用必须先归还主屏，归还失败就保留虚拟屏等待下一次重试。
+        if(display != null && idleMinutes > 0 && SystemClock.elapsedRealtime()-touched > idleMinutes*60_000L) {
+            if (returnAdoptedTasks()) release()
+        }
     }
 
     @Synchronized fun create(request: JSONObject, output: Surface? = null): JSONObject {
@@ -103,7 +111,16 @@ internal class VirtualDisplayEngine : AutoCloseable {
         val current = display ?: error("DISPLAY_GONE")
         check(manager.getDisplay(current.display.displayId) != null) { "DISPLAY_GONE" }
         val action = request.getString("action")
-        if (action == "close") { release(); return ok().put("closed", true) }
+        if (action == "close") {
+            // 用户不要主屏结果：把接管来的应用原样送回主屏，并恢复接管前的顶层任务。
+            if (!returnAdoptedTasks()) return failed("RETURN_TO_MAIN_FAILED", "应用归还主屏失败，虚拟屏保持运行以便重试")
+            release(); return ok().put("closed", true)
+        }
+        if (action == "handoff") {
+            // 用户明确要求在主屏查看结果：把屏上的任务迁到主屏并留在前台。
+            if (!showOnMain()) return failed("RETURN_TO_MAIN_FAILED", "应用迁移到主屏失败，虚拟屏保持运行以便重试")
+            release(); return ok().put("closed", true).put("shownOnMain", true)
+        }
         if (action == "cancel") { input?.cancelActive(); return ok() }
         if (action == "probe") return geometry().put("ok", true).put("interactive", power.isInteractive).put("locked", keyguard.isDeviceLocked)
         if (action == "set_idle_timeout") {
@@ -177,8 +194,14 @@ internal class VirtualDisplayEngine : AutoCloseable {
         require(ActivityInfo::class.java.getDeclaredMethod("isResizeableMode", Int::class.javaPrimitiveType).invoke(null, resizeMode) == true) { "DISPLAY_APP_UNSUPPORTED" }
         fun matchesTarget(task: ActivityManager.RunningTaskInfo): Boolean =
             task.baseActivity?.packageName == target.packageName || task.topActivity?.packageName == target.packageName
-        val elsewhere = runningTasks().any { matchesTarget(it) && taskDisplay(it) != displayId }
-        if (elsewhere) {
+        val elsewhere = runningTasks().firstOrNull { matchesTarget(it) && taskDisplay(it) != displayId }
+        if (elsewhere != null) {
+            // 已在运行的同一应用直接整任务接管，保留状态，避免 force-stop 重启。
+            if (adopt(elsewhere, displayId)) {
+                rotation?.apply(info.screenOrientation)
+                return geometry().put("ok", true).put("component", target.flattenToString())
+                    .put("adopted", true).put("task_id", elsewhere.taskId)
+            }
             if (!request.optBoolean("restartApproved")) return JSONObject().put("ok", false).put("code", "APP_RESTART_CONFIRMATION_REQUIRED").put("packageName", target.packageName).put("component", target.flattenToString())
             check(info.applicationInfo!!.flags and ApplicationInfo.FLAG_SYSTEM == 0 && target.packageName != request.optString("ownerPackage")) { "APP_RESTART_UNSUPPORTED" }
             command(listOf("/system/bin/am", "force-stop", target.packageName))
@@ -195,9 +218,91 @@ internal class VirtualDisplayEngine : AutoCloseable {
         val tasks = runningTasks().filter(::matchesTarget)
         check(tasks.isNotEmpty() && tasks.all { taskDisplay(it) == displayId }) { "DISPLAY_LAUNCH_MISMATCH" }
         hostedTasks.addAll(tasks.map { it.taskId })
+        primaryTaskId = tasks.first().taskId
         rotation?.apply(info.screenOrientation)
-        return geometry().put("ok", true).put("component", target.flattenToString()).put("restarted", elsewhere)
+        return geometry().put("ok", true).put("component", target.flattenToString()).put("restarted", elsewhere != null)
     }
+
+    /**
+     * 接管手机主屏上已在运行的任务。只在虚拟屏与主屏尺寸/密度一致时执行，
+     * 否则跨屏会触发 Activity 重建，违背“状态不变”的承诺，交回旧的重启流程。
+     */
+    private fun adopt(task: ActivityManager.RunningTaskInfo, displayId: Int): Boolean {
+        if (task.numActivities == 0 || task.taskId <= 0) return false
+        if (!matchesPhoneDisplay()) return false
+        val packageName = task.baseActivity?.packageName ?: task.topActivity?.packageName ?: return false
+        if (isHomePackage(packageName)) return false
+        // 只有原本在后台的任务才需要归还后恢复原顶层；原来在前台的应用归还后应继续留在前台。
+        val wasVisible = taskVisible(task)
+        val previousTop = runningTasks().firstOrNull {
+            taskDisplay(it) == 0 && it.taskId != task.taskId && taskVisible(it)
+        } ?: runningTasks().firstOrNull { taskDisplay(it) == 0 && it.taskId != task.taskId }
+        if (!moveTaskToDisplay(task.taskId, displayId)) return false
+        hostedTasks.add(task.taskId)
+        adoptedTasks.add(task.taskId)
+        primaryTaskId = task.taskId
+        if (!wasVisible && restoreFocusTaskId == null && previousTop != null) restoreFocusTaskId = previousTop.taskId
+        return true
+    }
+
+    /** 归还接管任务：迁回主屏后恢复接管前的顶层任务，用户回到原来的界面。 */
+    private fun returnAdoptedTasks(): Boolean {
+        val displayId = display?.display?.displayId ?: return true
+        for (taskId in adoptedTasks.toList()) {
+            val task = runningTasks().firstOrNull { it.taskId == taskId } ?: continue
+            if (taskDisplay(task) == displayId && !moveTaskToDisplay(taskId, 0)) return false
+        }
+        restoreFocusTaskId?.let(::focusTask)
+        return true
+    }
+
+    /** 在主屏展示结果：把屏上所有带内容的任务迁回主屏，并让主任务保持前台。 */
+    private fun showOnMain(): Boolean {
+        val displayId = display?.display?.displayId ?: return true
+        val tasks = runningTasks().filter { taskDisplay(it) == displayId && it.numActivities > 0 }
+        if (tasks.isEmpty()) return true
+        val primary = primaryTaskId?.takeIf { id -> tasks.any { it.taskId == id } } ?: tasks.first().taskId
+        val ordered = tasks.filter { it.taskId != primary } + tasks.filter { it.taskId == primary }
+        for (task in ordered) if (!moveTaskToDisplay(task.taskId, 0)) return false
+        focusTask(primary)
+        return true
+    }
+
+    private fun moveTaskToDisplay(taskId: Int, targetDisplayId: Int): Boolean {
+        val output = runCatching {
+            command(listOf("/system/bin/am", "display", "move-stack", taskId.toString(), targetDisplayId.toString()))
+        }.getOrNull() ?: return false
+        if ("Error:" in output || "Exception" in output) return false
+        repeat(10) {
+            val task = runningTasks().firstOrNull { it.taskId == taskId } ?: return true
+            if (taskDisplay(task) == targetDisplayId) return true
+            Thread.sleep(100)
+        }
+        return false
+    }
+
+    private fun focusTask(taskId: Int) {
+        val task = runningTasks().firstOrNull { it.taskId == taskId } ?: return
+        if (taskDisplay(task) != 0) return
+        runCatching { command(listOf("/system/bin/am", "task", "focus", taskId.toString())) }
+    }
+
+    private fun matchesPhoneDisplay(): Boolean {
+        val current = display?.display ?: return false
+        val main = manager.getDisplay(android.view.Display.DEFAULT_DISPLAY) ?: return false
+        val a = Point().also { current.getRealSize(it) }
+        val b = Point().also { main.getRealSize(it) }
+        val am = android.util.DisplayMetrics().also { current.getRealMetrics(it) }
+        val bm = android.util.DisplayMetrics().also { main.getRealMetrics(it) }
+        return a == b && am.densityDpi == bm.densityDpi
+    }
+
+    private fun isHomePackage(packageName: String): Boolean = runCatching {
+        val intent = android.content.Intent(android.content.Intent.ACTION_MAIN)
+            .addCategory(android.content.Intent.CATEGORY_HOME)
+        context.packageManager.resolveActivity(intent, android.content.pm.PackageManager.MATCH_DEFAULT_ONLY)
+            ?.activityInfo?.packageName == packageName
+    }.getOrDefault(false)
 
     private fun setRotation(rotation: Int) {
         val service = Class.forName("android.view.WindowManagerGlobal").getMethod("getWindowManagerService").invoke(null)
@@ -223,9 +328,16 @@ internal class VirtualDisplayEngine : AutoCloseable {
         runCatching { wakeLock?.release() }; wakeLock = null
         id = ""
         hostedTasks.clear()
+        adoptedTasks.clear()
+        primaryTaskId = null
+        restoreFocusTaskId = null
     }
 
-    override fun close() { release(); handler.removeCallbacksAndMessages(null); frames.quitSafely() }
+    override fun close() {
+        // 进程退出（App 被杀、管道关闭）时尽力把接管的用户应用送回主屏。
+        runCatching { returnAdoptedTasks() }
+        release(); handler.removeCallbacksAndMessages(null); frames.quitSafely()
+    }
 
     companion object {
         fun systemContext(): Context {
@@ -257,6 +369,10 @@ internal class VirtualDisplayEngine : AutoCloseable {
         }
         private fun flag(name: String) = runCatching { DisplayManager::class.java.getField(name).getInt(null) }.getOrDefault(0)
         private fun ok() = JSONObject().put("ok", true)
+        private fun failed(code: String, detail: String) =
+            JSONObject().put("ok", false).put("code", code).put("detail", detail)
+        private fun taskVisible(task: ActivityManager.RunningTaskInfo): Boolean =
+            runCatching { android.app.TaskInfo::class.java.getField("isVisible").getBoolean(task) }.getOrDefault(false)
         @Suppress("UNCHECKED_CAST") private fun runningTasks(): List<ActivityManager.RunningTaskInfo> {
             val type = Class.forName("android.app.ActivityTaskManager")
             return type.getMethod("getTasks", Int::class.javaPrimitiveType).invoke(type.getMethod("getInstance").invoke(null), 1000) as List<ActivityManager.RunningTaskInfo>
