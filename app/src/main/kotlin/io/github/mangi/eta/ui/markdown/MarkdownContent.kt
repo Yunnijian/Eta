@@ -1,6 +1,7 @@
 package io.github.mangi.eta.ui.markdown
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -22,6 +23,7 @@ import androidx.compose.material.icons.rounded.CheckBoxOutlineBlank
 import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.Feedback
 import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.Lightbulb
 import androidx.compose.material.icons.rounded.Report
 import androidx.compose.material.icons.rounded.Warning
@@ -42,6 +44,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.Layout
@@ -58,7 +61,16 @@ import androidx.compose.ui.text.style.TextMotion
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.isSpecified
+import androidx.compose.ui.unit.sp
+import com.hrm.latex.renderer.Latex
+import com.hrm.latex.renderer.measure.LatexMeasurerState
+import com.hrm.latex.renderer.measure.rememberLatexMeasurer
+import com.hrm.latex.renderer.model.LatexConfig
+import com.hrm.latex.renderer.model.LatexTheme
+import com.hrm.latex.renderer.model.LatexThemeColors
 import io.github.mangi.eta.R
 import io.github.mangi.eta.ui.components.StatusSuccess
 import io.github.mangi.eta.ui.components.StatusWarning
@@ -84,16 +96,35 @@ internal fun MarkdownContent(
     modifier: Modifier = Modifier,
     reveal: SmoothTextRevealCoordinator? = null,
 ) {
-    val scope = remember(style, reveal) { MarkdownRenderScope(style, reveal) }
+    val latexConfig = remember(style) { latexConfigFor(style) }
+    val latexMeasurer = rememberLatexMeasurer(latexConfig)
+    val scope = remember(style, reveal, latexConfig, latexMeasurer) {
+        MarkdownRenderScope(style, reveal, latexConfig, latexMeasurer)
+    }
     MarkdownBlockColumn(blocks = document.blocks, scope = scope, compact = false, modifier = modifier)
 }
 
 @Immutable
-private class MarkdownRenderScope(
+internal class MarkdownRenderScope(
     val style: MarkdownStyle,
     val reveal: SmoothTextRevealCoordinator?,
+    val latexConfig: LatexConfig,
+    val latexMeasurer: LatexMeasurerState,
 ) {
-    fun muted() = MarkdownRenderScope(style.muted(), reveal)
+    val isDark: Boolean get() = style.isDark
+
+    fun muted() = MarkdownRenderScope(style.muted(), reveal, latexConfig, latexMeasurer)
+}
+
+/** 公式颜色跟随正文，字体度量交给 KaTeX 字体模块；背景保持透明以贴合气泡。 */
+private fun latexConfigFor(style: MarkdownStyle): LatexConfig {
+    val fontSize = style.body.fontSize.takeIf { it.isSpecified } ?: 16.sp
+    val colors = LatexThemeColors(color = style.textColor, backgroundColor = Color.Transparent)
+    return LatexConfig(
+        fontSize = fontSize,
+        theme = LatexTheme.auto(light = colors, dark = colors),
+        enableLayoutCache = true,
+    )
 }
 
 /** 嵌套列表的层级只影响 marker 字形，用 CompositionLocal 传递，块组件不必逐层转发。 */
@@ -133,12 +164,17 @@ private fun MarkdownBlockView(block: MarkdownBlock, scope: MarkdownRenderScope) 
             scope = scope,
             modifier = Modifier.semantics { heading() },
         )
-        is MarkdownCode -> MarkdownCodeBlock(block, scope)
+        is MarkdownCode -> when {
+            block.isMath -> MarkdownMathBlock(block, scope)
+            block.isMermaid() -> MarkdownMermaidBlock(block, scope)
+            else -> MarkdownCodeBlock(block, scope)
+        }
         is MarkdownQuote -> MarkdownQuoteBlock(block, scope)
         is MarkdownAlert -> MarkdownAlertBlock(block, scope)
         is MarkdownList -> MarkdownListBlock(block, scope)
         is MarkdownTable -> MarkdownTableBlock(block, scope)
         is MarkdownTableCell -> MarkdownText(block, scope.style.table, scope)
+        is MarkdownDetails -> MarkdownDetailsBlock(block, scope)
         is MarkdownRule -> Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -156,29 +192,69 @@ private fun MarkdownText(
     scope: MarkdownRenderScope,
     modifier: Modifier = Modifier,
     softWrap: Boolean = true,
+    /** 语法着色后的富文本；为空时绘制块自身的 AnnotatedString。 */
+    content: AnnotatedString? = null,
 ) {
+    val text = content ?: block.text
+    val inlineContent = remember(text, scope.latexConfig, scope.latexMeasurer) {
+        text.getStringAnnotations(LATEX_INLINE_MATH_TAG, 0, text.length)
+            .map { it.item }
+            .distinct()
+            .mapNotNull { latex ->
+                scope.latexMeasurer.inlineContent(latex, scope.latexConfig)?.let { latex to it }
+            }
+            .toMap()
+    }
     val reveal = scope.reveal
+    // 行内公式高于正文行高时，固定 lineHeight 会让它压到上一行；交给 Compose 按
+    // 占位内容高度自行撑开行盒，其余段落仍保留主题行距。
+    val textStyle = if (inlineContent.isEmpty()) style else style.copy(lineHeight = TextUnit.Unspecified)
     // 空单元格没有可显现的文字，也不占用显现协调器的 key。
-    if (reveal == null || block.text.isEmpty()) {
-        Text(text = block.text, style = style, softWrap = softWrap, modifier = modifier)
+    if (reveal == null || text.isEmpty()) {
+        Text(
+            text = text,
+            style = textStyle,
+            softWrap = softWrap,
+            inlineContent = inlineContent,
+            modifier = modifier,
+        )
         return
     }
     val revealState = rememberSmoothTextRevealState(block.revealKey, reveal)
     // 显现裁剪按字素边界逐帧变化，关闭像素对齐可避免裁剪边缘抖动。
-    val animatedStyle = remember(style) { style.copy(textMotion = TextMotion.Animated) }
+    val animatedStyle = remember(textStyle) { textStyle.copy(textMotion = TextMotion.Animated) }
     Text(
-        text = block.text,
+        text = text,
         style = animatedStyle,
         softWrap = softWrap,
+        inlineContent = inlineContent,
         modifier = modifier.smoothTextReveal(revealState),
-        onTextLayout = { layout -> revealState.onTextLayout(block.text.text, layout) },
+        onTextLayout = { layout -> revealState.onTextLayout(text.text, layout) },
     )
+}
+
+// ── 公式块 ──────────────────────────────────────────────────────────────
+
+@Composable
+private fun MarkdownMathBlock(block: MarkdownCode, scope: MarkdownRenderScope) {
+    // 长公式不折行，横向滚动避免撑破气泡；解析失败时构建器已把它降级为代码块。
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
+            .padding(vertical = 2.dp),
+    ) {
+        Latex(
+            latex = block.text.text,
+            config = scope.latexConfig,
+        )
+    }
 }
 
 // ── 代码块 ──────────────────────────────────────────────────────────────
 
 @Composable
-private fun MarkdownCodeBlock(block: MarkdownCode, scope: MarkdownRenderScope) {
+internal fun MarkdownCodeBlock(block: MarkdownCode, scope: MarkdownRenderScope) {
     val style = scope.style
     Column(
         modifier = Modifier
@@ -202,13 +278,62 @@ private fun MarkdownCodeBlock(block: MarkdownCode, scope: MarkdownRenderScope) {
             CopyButton(text = block.text.text, tint = style.secondaryColor)
         }
         // 代码不折行，长行横向滚动，保留缩进与对齐。
+        val highlighted = remember(block.text.text, block.language, style.codeSyntax) {
+            CodeHighlighter.highlight(block.text.text, block.language, style.codeSyntax)
+        }
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .horizontalScroll(rememberScrollState())
                 .padding(start = 14.dp, end = 14.dp, bottom = 12.dp),
         ) {
-            MarkdownText(block, style.code, scope, softWrap = false)
+            MarkdownText(block, style.code, scope, softWrap = false, content = highlighted)
+        }
+    }
+}
+
+// ── 折叠块 ──────────────────────────────────────────────────────────────
+
+@Composable
+private fun MarkdownDetailsBlock(block: MarkdownDetails, scope: MarkdownRenderScope) {
+    var expanded by remember(block.offset) { mutableStateOf(false) }
+    val style = scope.style
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .squircleSurface(color = style.codeBackground, cornerRadius = 12.dp),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { expanded = !expanded }
+                .padding(horizontal = 14.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.KeyboardArrowRight,
+                contentDescription = null,
+                modifier = Modifier
+                    .size(18.dp)
+                    .graphicsLayer { rotationZ = if (expanded) 90f else 0f },
+                tint = style.secondaryColor,
+            )
+            Spacer(Modifier.width(6.dp))
+            Text(
+                text = block.summary.takeIf { it.isNotEmpty() }
+                    ?: AnnotatedString(stringResource(R.string.markdown_details)),
+                style = style.body.copy(fontWeight = FontWeight.SemiBold, color = style.textColor),
+                maxLines = 3,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        if (expanded) {
+            MarkdownBlockColumn(
+                blocks = block.blocks,
+                scope = scope,
+                compact = false,
+                modifier = Modifier.padding(start = 14.dp, end = 14.dp, bottom = 12.dp),
+            )
         }
     }
 }

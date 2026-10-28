@@ -99,6 +99,110 @@ class TexMathDelimitersTest {
     }
 
     @Test
+    fun inlineDollarMathBecomesInlineContent() {
+        val paragraph = blocks("行内 \$E=mc^2\$ 结束").single() as MarkdownParagraph
+        val annotations = paragraph.text.getStringAnnotations(
+            LATEX_INLINE_MATH_TAG,
+            0,
+            paragraph.text.length,
+        )
+
+        assertEquals(listOf("E=mc^2"), annotations.map { it.item })
+        // 占位文本就是公式原文；排版时整段被 inlineContent 换成公式。
+        assertEquals("行内 E=mc^2 结束", paragraph.text.text)
+    }
+
+    @Test
+    fun currencyWithoutSpacesStaysLiteral() {
+        val source = "价格是\$5和\$10"
+        val paragraph = blocks(source).single() as MarkdownParagraph
+
+        assertEquals(source, paragraph.text.text)
+        assertTrue(
+            paragraph.text.getStringAnnotations(LATEX_INLINE_MATH_TAG, 0, paragraph.text.length).isEmpty(),
+        )
+    }
+
+    @Test
+    fun invalidDisplayMathFallsBackToCodeBlock() {
+        val math = blocks("\$\$\\frac{1}{\$\$").single() as MarkdownCode
+
+        assertFalse(math.isMath)
+        assertEquals("\\frac{1}{", math.text.text)
+    }
+
+    @Test
+    fun invalidInlineMathStaysLiteral() {
+        val source = "错误 \$\\frac{1}{\$ 结束"
+        val paragraph = blocks(source).single() as MarkdownParagraph
+
+        assertEquals(source, paragraph.text.text)
+        assertTrue(
+            paragraph.text.getStringAnnotations(LATEX_INLINE_MATH_TAG, 0, paragraph.text.length).isEmpty(),
+        )
+    }
+
+    @Test
+    fun everyInlineFormulaInTheMessageIsRendered() {
+        val paragraph = blocks("当 \$n \\to \\infty\$ 时，\$\\frac{1}{n} \\to 0\$ 都成立")
+            .single() as MarkdownParagraph
+
+        assertEquals(
+            listOf("n \\to \\infty", "\\frac{1}{n} \\to 0"),
+            paragraph.text.getStringAnnotations(LATEX_INLINE_MATH_TAG, 0, paragraph.text.length)
+                .map { it.item },
+        )
+    }
+
+    @Test
+    fun inlineFormulasWithoutSpacesAreAllRendered() {
+        val paragraph = blocks("设\$a=1\$，则\$b=a+1=2\$")
+            .single() as MarkdownParagraph
+
+        assertEquals(
+            listOf("a=1", "b=a+1=2"),
+            paragraph.text.getStringAnnotations(LATEX_INLINE_MATH_TAG, 0, paragraph.text.length)
+                .map { it.item },
+        )
+    }
+
+    @Test
+    fun currencyWithFullWidthPunctuationStaysLiteral() {
+        val source = "价格 \$5，运费 \$10。"
+        val paragraph = blocks(source).single() as MarkdownParagraph
+
+        assertEquals(source, paragraph.text.text)
+    }
+
+    @Test
+    fun escapedDollarAmountsStayLiteral() {
+        val source = "本单合计 \\\$299，已优惠 \\\$50。"
+        val paragraph = blocks(source).single() as MarkdownParagraph
+
+        assertEquals("本单合计 \$299，已优惠 \$50。", paragraph.text.text)
+        assertTrue(
+            paragraph.text.getStringAnnotations(LATEX_INLINE_MATH_TAG, 0, paragraph.text.length).isEmpty(),
+        )
+    }
+
+    @Test
+    fun brokenInlineFormulaDoesNotBreakTheRestOfTheMessage() {
+        val paragraph = blocks("错误 \$\\frac{1}{\$ 未写完").single() as MarkdownParagraph
+
+        assertTrue(paragraph.text.text.contains("\\frac{1}{"))
+        assertTrue(
+            paragraph.text.getStringAnnotations(LATEX_INLINE_MATH_TAG, 0, paragraph.text.length).isEmpty(),
+        )
+    }
+
+    @Test
+    fun unsupportedLabelFormulaDegradesWithoutCrash() {
+        val paragraph = blocks("\$\\label{eq1}\$").single() as MarkdownParagraph
+
+        assertTrue(paragraph.text.text.contains("\\label{eq1}"))
+    }
+
+    @Test
     fun dollarMathAndCurrencyStayUnchanged() {
         listOf("价格 \$4 和 \$20 每百万", "行内 \$E=mc^2\$ 结束").forEach { source ->
             assertEquals(source, TexMathDelimiters.normalize(source))

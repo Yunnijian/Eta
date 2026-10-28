@@ -137,7 +137,8 @@ internal object AgentPromptBuilder {
                             "屏幕观察与 GUI 操作前会确认 Eta 无障碍服务；只有系统保护后端可用时才会请求有限重绑。" +
                             "若工具返回 ACCESSIBILITY_UNAVAILABLE、ACCESSIBILITY_PROTECTION_UNAVAILABLE 或 ACCESSIBILITY_REPAIR_TIMEOUT，说明动作未执行，" +
                             "不要改用坐标或 Shell 重放 GUI 动作。"
-                    })
+                    }) +
+                    "\n\n" + MATH_RENDERING_RULES + "\n\n" + MERMAID_RENDERING_RULES
             )
         )
         if (config.terminalTools) {
@@ -274,6 +275,39 @@ internal object AgentPromptBuilder {
         }
         return systemMessage(body)
     }
+
+    private const val MATH_RENDERING_RULES = """# 数学公式渲染规范
+
+输出数学公式时，必须使用 KaTeX 兼容的 LaTeX 语法，客户端会将公式渲染为数学排版。
+
+## 分隔符约定
+- 行内公式：用单个 ${'$'} 包裹，如 ${'$'}E = mc^2${'$'}，随文字排版不换行
+- 独立公式：用 ${'$'}${'$'} 包裹并独占一行，上下各留一个空行
+
+## 语法规则
+- 环境仅支持：aligned、cases、matrix、pmatrix、bmatrix、vmatrix、Vmatrix、array、gather
+- 不使用 \label、\ref、\cite、\tag 等交叉引用命令
+- 不使用 tikz、pgfplots 等绘图宏包
+- 不使用 \begin{align}（KaTeX 不支持），多行对齐用 aligned
+- 遇到不确定是否支持的命令时，改用 \text{} 包裹的文字描述替代"""
+
+    private const val MERMAID_RENDERING_RULES = """# 图表渲染规范
+
+需要展示流程、时序、状态流转、类关系或实体关系时，使用 ```mermaid 代码块，客户端会把它渲染成图形。
+
+## 使用时机
+- 流程图、步骤分支、判定条件：graph TD（自上而下）或 graph LR（自左向右）
+- 多角色交互与调用顺序：sequenceDiagram
+- 状态机与状态流转：stateDiagram-v2
+- 类与接口关系、数据表关系：classDiagram、erDiagram
+- 只是并列要点或少量步骤时用列表或文字说明，不要为了排版而画图；一次回复通常只画一张最必要的图
+
+## 语法要求
+- 代码块语言标记必须是 mermaid
+- 节点文字直接写自然语言，不使用 HTML 标签、<br> 或点击事件
+- 图中文字使用用户的语言，节点文案保持简短
+- 图形会缩放到屏幕宽度，横向节点尽量不超过 6 个，过宽时改用 TD 或拆分
+- 语法错误会让整段降级为源码显示，输出前确认括号、引号与箭头成对"""
 
     private fun systemMessage(content: String): JSONObject =
         JSONObject()

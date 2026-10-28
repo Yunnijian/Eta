@@ -175,6 +175,12 @@ dependencies {
     implementation(libs.activity.compose)
     // 只使用 GFM 解析器；聊天渲染层由 ui/markdown 自建，按块冻结并接入逐字显现。
     implementation(libs.intellij.markdown)
+    // 原生 Compose LaTeX 渲染（KaTeX 字体度量与语法），避免 WebView 在长列表里的开销。
+    // AAR 打了 cases 修复：去掉库自动插入的 " if " 并纠正两列顺序（见 libs 内说明）。
+    implementation(files("libs/latex-renderer-android-1.6.3-cases.aar"))
+    implementation(libs.latex.fonts.katex.android)
+    implementation(libs.latex.parser.android)
+    implementation(libs.androidx.graphics.path)
     implementation(libs.hidden.api.bypass)
 
     // DataStore：Provider / Model 结构化 JSON 与当前选中 ID 等键值

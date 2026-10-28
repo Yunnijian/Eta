@@ -1,5 +1,6 @@
 package io.github.mangi.eta.ui.markdown
 
+import androidx.compose.foundation.text.appendInlineContent
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.AnnotatedString
@@ -86,7 +87,8 @@ internal class MarkdownInlineBuilder(
                 appendChildren(node, state)
             }
             MarkdownElementTypes.CODE_SPAN -> appendCode(codeSpanText(node))
-            GFMElementTypes.INLINE_MATH, GFMElementTypes.BLOCK_MATH -> appendCode(mathText(node))
+            GFMElementTypes.INLINE_MATH -> appendInlineMath(node)
+            GFMElementTypes.BLOCK_MATH -> appendCode(mathText(node))
             MarkdownElementTypes.INLINE_LINK -> appendInlineLink(node, state)
             MarkdownElementTypes.FULL_REFERENCE_LINK -> appendReferenceLink(
                 node = node,
@@ -132,6 +134,11 @@ internal class MarkdownInlineBuilder(
         val pairs = if (parent?.type in REAL_EMPHASIS_TYPES) emptyMap() else pairLooseInline(nodes)
         var index = 0
         while (index < nodes.size) {
+            val mathEnd = tryAppendInlineMath(nodes, index, parent)
+            if (mathEnd != null) {
+                index = mathEnd
+                continue
+            }
             val pair = pairs[index]
             if (pair != null) {
                 withStyle(pair.style) {
@@ -358,6 +365,67 @@ internal class MarkdownInlineBuilder(
         } else {
             inner
         }
+    }
+
+    /** 可渲染的公式占一个占位符，由 Text 的 inlineContent 换成 KaTeX 排版；坏公式保留原文。 */
+    private fun AnnotatedString.Builder.appendInlineMath(node: ASTNode) {
+        val latex = mathText(node)
+        if (!LatexSupport.isRenderable(latex)) {
+            append(node.text())
+            return
+        }
+        appendRenderedMath(latex)
+    }
+
+    private fun AnnotatedString.Builder.appendRenderedMath(latex: String) {
+        val start = length
+        appendInlineContent(latex, latex)
+        addStringAnnotation(LATEX_INLINE_MATH_TAG, latex, start, length)
+    }
+
+    /**
+     * GFM 的 MathParser 只在 `$` 前是空白/非标点时开公式，紧贴中文或全角标点的
+     * `$...$` 会留成普通 DOLLAR/TEXT 节点。这里在兄弟节点间自行配对，校验失败时
+     * 只把当前 `$` 当普通文本，继续从下一个节点扫描。
+     */
+    private fun AnnotatedString.Builder.tryAppendInlineMath(
+        nodes: List<ASTNode>,
+        index: Int,
+        parent: ASTNode?,
+    ): Int? {
+        if (parent?.type == GFMElementTypes.INLINE_MATH || parent?.type == GFMElementTypes.BLOCK_MATH) return null
+        val open = nodes[index]
+        if (open.type != GFMTokenTypes.DOLLAR || open.text().length != 1 || open.isEscapedDollar()) return null
+        var cursor = index + 1
+        while (cursor < nodes.size) {
+            val node = nodes[cursor]
+            when {
+                node.type == GFMTokenTypes.DOLLAR -> {
+                    if (node.text().length != 1 || node.isEscapedDollar()) {
+                        cursor += 1
+                        continue
+                    }
+                    val latex = source.substring(open.endOffset, node.startOffset).trim()
+                    if (!LatexSupport.isRenderable(latex)) return null
+                    appendRenderedMath(latex)
+                    return cursor + 1
+                }
+                node.type == MarkdownTokenTypes.EOL ||
+                    node.type == MarkdownTokenTypes.HARD_LINE_BREAK -> return null
+                else -> cursor += 1
+            }
+        }
+        return null
+    }
+
+    private fun ASTNode.isEscapedDollar(): Boolean {
+        var cursor = startOffset - 1
+        var slashes = 0
+        while (cursor >= 0 && source[cursor] == '\\') {
+            slashes += 1
+            cursor -= 1
+        }
+        return slashes % 2 == 1
     }
 
     private fun mathText(node: ASTNode): String {

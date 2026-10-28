@@ -504,6 +504,7 @@
   <string name="work_collapse">Collapse work details</string>
   <string name="work_expand">Expand work details</string>
   <string name="markdown_code_block">Code</string>
+  <string name="markdown_details">Details</string>
   <string name="markdown_alert_note">Note</string>
   <string name="markdown_alert_tip">Tip</string>
   <string name="markdown_alert_important">Important</string>

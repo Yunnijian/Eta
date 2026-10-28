@@ -36,7 +36,9 @@ google-services.json
 /reference/
 
 # sherpa-onnx 本地识别引擎 AAR 由 scripts/fetch-sherpa-aar.sh 按 SHA-256 拉取
-app/libs/
+app/libs/*
+# 修补了 cases 渲染 bug 的 LaTeX 渲染库，需随仓库分发
+!app/libs/latex-renderer-android-1.6.3-cases.aar
 
 # AI 编程工具本地产物
 .commandcode/

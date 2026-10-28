@@ -259,6 +259,40 @@ class AgentPromptBuilderTest {
         assertTrue(enabled.systemContents().any { it.contains("可调用 subagent 派发子智能体") })
     }
 
+    @Test
+    fun mathRenderingRulesAreIncludedInTheSystemPrompt() {
+        val messages = AgentPromptBuilder.buildSystemMessages(
+            config = modelConfig("", terminalTools = false, browserTools = false),
+            skillContext = SkillContext.EMPTY,
+            memoryContext = AgentMemoryContext.DISABLED,
+            rootAvailable = false,
+        )
+        val system = messages.systemContents().joinToString("\n")
+
+        assertTrue(system.contains("# 数学公式渲染规范"))
+        assertTrue(system.contains("行内公式：用单个 \$ 包裹"))
+        assertTrue(system.contains("独立公式：用 \$\$ 包裹并独占一行"))
+        assertTrue(system.contains("不使用 \\begin{align}"))
+        assertTrue(system.contains("改用 \\text{} 包裹的文字描述替代"))
+    }
+
+    @Test
+    fun mermaidRenderingRulesAreIncludedInTheSystemPrompt() {
+        val messages = AgentPromptBuilder.buildSystemMessages(
+            config = modelConfig("", terminalTools = false, browserTools = false),
+            skillContext = SkillContext.EMPTY,
+            memoryContext = AgentMemoryContext.DISABLED,
+            rootAvailable = false,
+        )
+        val system = messages.systemContents().joinToString("\n")
+
+        assertTrue(system.contains("# 图表渲染规范"))
+        assertTrue(system.contains("代码块语言标记必须是 mermaid"))
+        assertTrue(system.contains("不使用 HTML 标签"))
+        assertTrue(system.contains("sequenceDiagram"))
+        assertTrue(system.contains("降级为源码显示"))
+    }
+
     private fun modelConfig(
         systemPrompt: String,
         terminalTools: Boolean,

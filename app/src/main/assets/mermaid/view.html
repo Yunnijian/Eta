@@ -1,0 +1,150 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    overflow: hidden;
+  }
+  #container {
+    width: 100%;
+  }
+  #container svg {
+    display: block;
+    max-width: 100%;
+    height: auto;
+  }
+</style>
+</head>
+<body>
+<div id="container"></div>
+<script src="mermaid-10.9.5.min.js"></script>
+<script>
+  function decodeBase64(value) {
+    const binary = atob(value);
+    const bytes = new Uint8Array(binary.length);
+    for (let index = 0; index < binary.length; index++) {
+      bytes[index] = binary.charCodeAt(index);
+    }
+    return new TextDecoder('utf-8').decode(bytes);
+  }
+
+  function report(requestId, height, png) {
+    try {
+      EtaMermaidBridge.onResult(String(requestId), String(height), png || '');
+    } catch (error) {
+      // 桥未注入时保持静默，Kotlin 侧按失败降级为源码。
+    }
+  }
+
+  // 容器可能尚未布局：用 scrollHeight 与 SVG viewBox 比例兜底。
+  function measureTarget(container, svg) {
+    const rect = container.getBoundingClientRect();
+    const svgRect = svg ? svg.getBoundingClientRect() : null;
+    let height = Math.ceil(Math.max(
+      rect.height,
+      container.scrollHeight,
+      svgRect ? svgRect.height : 0,
+    ));
+    let width = Math.ceil(rect.width || (svgRect ? svgRect.width : 0) || container.clientWidth);
+    const box = svg && svg.viewBox ? svg.viewBox.baseVal : null;
+    if ((height <= 0 || width <= 0) && box && box.width > 0) {
+      const fallbackWidth = width > 0 ? width : (container.clientWidth || document.documentElement.clientWidth);
+      if (fallbackWidth > 0) {
+        width = fallbackWidth;
+        height = Math.ceil(fallbackWidth * box.height / box.width);
+      }
+    }
+    return { width: width, height: height };
+  }
+
+  // 把 SVG 交给 <img> 栅格化成 PNG：调用方只显示位图，
+  // 可见区域里不再有 WebView，也就不再参与列表的合成与重绘。
+  function rasterize(svg, width, height, density) {
+    return new Promise(function (resolve, reject) {
+      const scale = Math.min(density, 4096 / Math.max(height, 1));
+      const clone = svg.cloneNode(true);
+      clone.setAttribute('width', Math.round(width));
+      clone.setAttribute('height', Math.round(height));
+      clone.style.maxWidth = 'none';
+      const text = new XMLSerializer().serializeToString(clone);
+      const image = new Image();
+      image.onload = function () {
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = Math.max(1, Math.round(width * scale));
+          canvas.height = Math.max(1, Math.round(height * scale));
+          const context = canvas.getContext('2d');
+          context.clearRect(0, 0, canvas.width, canvas.height);
+          context.drawImage(image, 0, 0, canvas.width, canvas.height);
+          resolve(canvas.toDataURL('image/png'));
+        } catch (error) {
+          reject(error);
+        }
+      };
+      image.onerror = function () {
+        reject(new Error('svg image rejected'));
+      };
+      image.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(text)));
+    });
+  }
+
+  window.renderDiagram = async function (encodedSource, dark, requestId) {
+    const container = document.getElementById('container');
+    container.innerHTML = '';
+    try {
+      const source = decodeBase64(encodedSource);
+      mermaid.initialize({
+        startOnLoad: false,
+        securityLevel: 'strict',
+        theme: dark ? 'dark' : 'default',
+        fontFamily: 'sans-serif',
+        themeVariables: { background: 'transparent' },
+        // 栅格化走 SVG 图片，不使用 <foreignObject> 里的 HTML 标签。
+        flowchart: { htmlLabels: false, useMaxWidth: true },
+        sequence: { useMaxWidth: true },
+        gantt: { useMaxWidth: true },
+        journey: { useMaxWidth: true },
+        class: { useMaxWidth: true },
+        state: { useMaxWidth: true },
+        er: { useMaxWidth: true },
+      });
+      // parse 先行：语法错误在写 DOM 之前抛出，避免留下半张图。
+      await mermaid.parse(source);
+      const rendered = await mermaid.render('eta-mermaid-' + Date.now(), source);
+      container.innerHTML = rendered.svg;
+      const svg = container.querySelector('svg');
+      let settled = false;
+      const finish = async function () {
+        if (settled) return;
+        const target = measureTarget(container, svg);
+        if (target.width <= 0 || target.height <= 0) return;
+        settled = true;
+        try {
+          const png = await rasterize(svg, target.width, target.height, window.devicePixelRatio || 1);
+          report(requestId, target.height, png);
+        } catch (error) {
+          report(requestId, 0, '');
+        }
+      };
+      const measure = function () { finish(); };
+      requestAnimationFrame(function () { requestAnimationFrame(measure); });
+      setTimeout(measure, 300);
+      setTimeout(function () {
+        if (!settled) {
+          settled = true;
+          report(requestId, 0, '');
+        }
+      }, 1200);
+    } catch (error) {
+      container.innerHTML = '';
+      report(requestId, 0, '');
+    }
+  };
+</script>
+</body>
+</html>

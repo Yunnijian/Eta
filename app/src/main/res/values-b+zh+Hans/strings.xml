@@ -491,6 +491,7 @@
   <string name="work_collapse">收起工作过程</string>
   <string name="work_expand">展开工作过程</string>
   <string name="markdown_code_block">代码</string>
+  <string name="markdown_details">详情</string>
   <string name="markdown_alert_note">说明</string>
   <string name="markdown_alert_tip">提示</string>
   <string name="markdown_alert_important">重要</string>

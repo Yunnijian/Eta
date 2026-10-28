@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -32,6 +33,9 @@ internal class MarkdownStyle(
     val codeBackground: Color,
     val tableHeaderBackground: Color,
     val inline: MarkdownInlineStyle,
+    /** 代码语法着色与 Mermaid 主题共用的明暗判定。 */
+    val isDark: Boolean,
+    val codeSyntax: CodeSyntaxPalette,
 ) {
     fun heading(level: Int): TextStyle = headings[(level - 1).coerceIn(0, headings.lastIndex)]
 
@@ -49,6 +53,8 @@ internal class MarkdownStyle(
         codeBackground = codeBackground,
         tableHeaderBackground = tableHeaderBackground,
         inline = inline,
+        isDark = isDark,
+        codeSyntax = codeSyntax,
     )
 }
 
@@ -64,6 +70,7 @@ internal fun rememberMarkdownStyle(tone: MarkdownTone): MarkdownStyle {
             lineHeight = if (answer) ANSWER_LINE_HEIGHT_SP.sp else THINKING_LINE_HEIGHT_SP.sp,
             color = textColor,
         )
+        val isDark = colors.surface.luminance() < 0.5f
         // 聊天里的标题只是段落强调，不是页面标题：字号克制，层级主要靠字重区分。
         val headings = if (answer) {
             listOf(
@@ -96,6 +103,8 @@ internal fun rememberMarkdownStyle(tone: MarkdownTone): MarkdownStyle {
                 linkColor = colors.primary,
                 codeBackground = colors.onSurface.copy(alpha = 0.07f),
             ),
+            isDark = isDark,
+            codeSyntax = if (isDark) CodeSyntaxPalette.Dark else CodeSyntaxPalette.Light,
         )
     }
 }

@@ -26,6 +26,8 @@ json = "20260814"
 robolectric = "4.17"
 commonsCompress = "1.28.0"
 xz = "1.12"
+latex = "1.6.3"
+androidxGraphicsPath = "1.0.1"
 
 [libraries]
 kotlin-gradle-plugin = { group = "org.jetbrains.kotlin", name = "kotlin-gradle-plugin", version.ref = "kotlin" }
@@ -38,6 +40,9 @@ miuix-ui = { group = "top.yukonga.miuix.kmp", name = "miuix-ui-android", version
 miuix-blur = { group = "top.yukonga.miuix.kmp", name = "miuix-blur-android", version.ref = "miuix" }
 miuix-nav = { group = "top.yukonga.miuix.kmp", name = "miuix-nav-android", version.ref = "miuix" }
 miuix-preference = { group = "top.yukonga.miuix.kmp", name = "miuix-preference-android", version.ref = "miuix" }
+latex-fonts-katex-android = { group = "io.github.huarangmeng", name = "latex-fonts-katex-android", version.ref = "latex" }
+latex-parser-android = { group = "io.github.huarangmeng", name = "latex-parser-android", version.ref = "latex" }
+androidx-graphics-path = { group = "androidx.graphics", name = "graphics-path", version.ref = "androidxGraphicsPath" }
 material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended", version.ref = "materialIcons" }
 androidx-navigationevent = { group = "androidx.navigationevent", name = "navigationevent-compose", version.ref = "androidx-navigationevent" }
 androidx-lifecycle-runtime-compose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "androidx-lifecycle" }

@@ -95,3 +95,10 @@ internal data class MarkdownTableCell(
 internal enum class MarkdownColumnAlign { Start, Center, End }
 
 internal data class MarkdownRule(override val offset: Int) : MarkdownBlock
+
+/** `<details>` 折叠块：只放行 details/summary，正文按 Markdown 继续排版。 */
+internal data class MarkdownDetails(
+    override val offset: Int,
+    val summary: AnnotatedString,
+    val blocks: List<MarkdownBlock>,
+) : MarkdownBlock

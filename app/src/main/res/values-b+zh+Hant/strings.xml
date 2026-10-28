@@ -479,6 +479,7 @@
   <string name="work_collapse">收合工作過程</string>
   <string name="work_expand">展開工作過程</string>
   <string name="markdown_code_block">程式碼</string>
+  <string name="markdown_details">詳情</string>
   <string name="markdown_alert_note">說明</string>
   <string name="markdown_alert_tip">提示</string>
   <string name="markdown_alert_important">重要</string>
