@@ -1386,4 +1386,18 @@
   <string name="chat_queue_remove">移除排隊訊息</string>
   <string name="chat_queue_images_only">[%1$d 張圖片]</string>
   <string name="chat_queue_files_only">[%1$d 個檔案]</string>
+
+  <string name="virtual_screen_settings_title">虛擬螢幕</string>
+  <string name="virtual_screen_operation_group">操作設定</string>
+  <string name="virtual_screen_access_group">MCP 伺服器</string>
+  <string name="virtual_screen_mcp_service">MCP 服務</string>
+  <string name="virtual_screen_mcp_service_summary">允許外部 Agent 透過 MCP 呼叫虛擬螢幕</string>
+  <string name="virtual_screen_mcp_start_failed">MCP 服務啟動失敗</string>
+  <string name="virtual_screen_lan_access">區域網路存取</string>
+  <string name="virtual_screen_lan_access_summary">允許同一網路內的其他裝置連線</string>
+  <string name="virtual_screen_lan_address">區域網路位址</string>
+  <string name="virtual_screen_lan_unavailable">暫無區域網路位址</string>
+  <string name="virtual_screen_endpoint">本機位址</string>
+  <string name="virtual_screen_token">Bearer Token</string>
+  <string name="virtual_screen_copied">已複製</string>
 </resources>

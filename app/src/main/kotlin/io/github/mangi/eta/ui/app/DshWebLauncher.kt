@@ -3,6 +3,7 @@ package io.github.mangi.eta.ui.app
 import android.content.Context
 import android.content.Intent
 import androidx.core.net.toUri
+import io.github.mangi.eta.agent.virtualscreen.mcp.VirtualScreenMcpProvisioning
 import io.github.mangi.eta.agent.runtime.AgentExecutionService
 import io.github.mangi.eta.agent.terminal.DetachedTaskSupervisor
 import io.github.mangi.eta.agent.terminal.LinuxEnvironmentPaths
@@ -66,6 +67,16 @@ internal class DshWebLauncher(
             }
             try {
                 currentCoroutineContext().ensureActive()
+                runCatching {
+                    VirtualScreenMcpProvisioning.provision(
+                        context = context,
+                        environment = environment,
+                        identity = identity,
+                        rootfs = rootfs,
+                    )
+                }.onFailure {
+                    AndroidAgentLogger.warn("Virtual screen MCP provisioning failed: ${it.javaClass.simpleName}")
+                }
                 session.launch(
                     environment = environment,
                     identity = identity,

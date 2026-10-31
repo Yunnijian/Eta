@@ -1455,4 +1455,18 @@
   <string name="chat_queue_remove">移除排队消息</string>
   <string name="chat_queue_images_only">[%1$d 张图片]</string>
   <string name="chat_queue_files_only">[%1$d 个文件]</string>
+
+  <string name="virtual_screen_settings_title">虚拟屏</string>
+  <string name="virtual_screen_operation_group">操作设置</string>
+  <string name="virtual_screen_access_group">MCP 服务器</string>
+  <string name="virtual_screen_mcp_service">MCP 服务</string>
+  <string name="virtual_screen_mcp_service_summary">允许外部 Agent 通过 MCP 调用虚拟屏</string>
+  <string name="virtual_screen_mcp_start_failed">MCP 服务启动失败</string>
+  <string name="virtual_screen_lan_access">局域网访问</string>
+  <string name="virtual_screen_lan_access_summary">允许同一网络内的其他设备连接</string>
+  <string name="virtual_screen_lan_address">局域网地址</string>
+  <string name="virtual_screen_lan_unavailable">暂无局域网地址</string>
+  <string name="virtual_screen_endpoint">本机地址</string>
+  <string name="virtual_screen_token">Bearer Token</string>
+  <string name="virtual_screen_copied">已复制</string>
 </resources>

@@ -390,13 +390,15 @@ private fun SettingsPageContent(
                     )
 
                     EtaPreferenceDivider()
-                    SwitchPref(
-                        context = context,
-                        prefs = agentPrefs,
-                        title = stringResource(R.string.settings_virtual_display_title),
-                        key = Prefs.Keys.AGENT_VIRTUAL_DISPLAY_ENABLED,
-                        icon = Icons.Rounded.Layers,
-                        iconTint = EtaPreferenceColors.Blue,
+                    EtaArrowPreference(
+                        title = stringResource(R.string.virtual_screen_settings_title),
+                        startAction = {
+                            EtaPreferenceIcon(
+                                icon = Icons.Rounded.Computer,
+                                tint = EtaPreferenceColors.Blue,
+                            )
+                        },
+                        onClick = { onNavigate(AppRoute.VirtualScreenSettings) },
                     )
 
                     EtaPreferenceDivider()
@@ -951,7 +953,7 @@ private fun SystemizerConfirmDialog(
  * Runtime 开关始终使用 App 本地配置。
  */
 @Composable
-private fun SwitchPref(
+internal fun SwitchPref(
     context: Context,
     prefs: SharedPreferences?,
     title: String,
