@@ -393,6 +393,16 @@ private fun SettingsPageContent(
                     SwitchPref(
                         context = context,
                         prefs = agentPrefs,
+                        title = stringResource(R.string.settings_virtual_display_title),
+                        key = Prefs.Keys.AGENT_VIRTUAL_DISPLAY_ENABLED,
+                        icon = Icons.Rounded.Layers,
+                        iconTint = EtaPreferenceColors.Blue,
+                    )
+
+                    EtaPreferenceDivider()
+                    SwitchPref(
+                        context = context,
+                        prefs = agentPrefs,
                         title = stringResource(R.string.ui_enable_device_direct_tools_e2d595),
                         key = Prefs.Keys.AGENT_DEVICE_DIRECT_TOOLS,
                         icon = Icons.Rounded.Smartphone,
@@ -439,18 +449,6 @@ private fun SettingsPageContent(
                             )
                         },
                         onClick = { onNavigate(AppRoute.LinuxEnvironment) },
-                    )
-
-                    EtaPreferenceDivider()
-                    EtaArrowPreference(
-                        title = stringResource(R.string.virtual_screen_settings_title),
-                        startAction = {
-                            EtaPreferenceIcon(
-                                icon = Icons.Rounded.Computer,
-                                tint = EtaPreferenceColors.Blue,
-                            )
-                        },
-                        onClick = { onNavigate(AppRoute.VirtualScreenSettings) },
                     )
                 }
             }

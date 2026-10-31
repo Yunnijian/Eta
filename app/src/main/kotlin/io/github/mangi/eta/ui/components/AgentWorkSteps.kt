@@ -59,7 +59,6 @@ internal fun List<AgentChatMessageUi>.toWorkSteps(): List<AgentWorkStep> = build
 private val UNGROUPED_TOOLS = setOf(
     "browser_use",
     "subagent",
-    "virtual_observe",
     "observe_screen",
     "read_image",
     "browser_screenshot",

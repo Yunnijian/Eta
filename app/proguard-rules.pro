@@ -63,12 +63,10 @@
 # 保留源码与行号属性，便于使用 release mapping 还原线上堆栈。
 -keepattributes SourceFile,LineNumberTable
 
-# app_process 通过固定类名启动受控的一方应用操作入口。
+# app_process 通过固定类名启动受控的一方应用与虚拟屏操作入口。
 -keep class io.github.mangi.eta.agent.phone.PhoneCommandMain {
     public static void main(java.lang.String[]);
 }
-
-# app_process 通过固定类名启动虚拟显示引擎入口。
--keep class io.github.mangi.eta.agent.virtualscreen.backend.VirtualDisplayCommandMain {
+-keep class io.github.mangi.eta.agent.virtualdisplay.VirtualDisplayCommandMain {
     public static void main(java.lang.String[]);
 }

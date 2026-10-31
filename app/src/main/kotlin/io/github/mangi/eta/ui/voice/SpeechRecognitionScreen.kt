@@ -15,9 +15,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.mangi.eta.R
-import io.github.mangi.eta.agent.voice.SherpaModelStore
 import io.github.mangi.eta.agent.voice.validateSpeechSettings
-import kotlinx.coroutines.launch
 import io.github.mangi.eta.data.model.AsrProvider
 import io.github.mangi.eta.data.model.SpeechSettings
 import io.github.mangi.eta.ui.components.EtaArrowPreference
@@ -55,7 +53,6 @@ internal fun SpeechRecognitionScreen(onBack: () -> Unit, onOpenOss: () -> Unit) 
             EtaPreferenceGroup {
                 EtaSwitchPreference(
                     title = stringResource(R.string.speech_recognition_enabled),
-                    summary = stringResource(R.string.speech_recognition_enabled_summary),
                     checked = settings.recognitionEnabled,
                     onCheckedChange = { store.edit(settings.copy(recognitionEnabled = it)) },
                 )
@@ -80,8 +77,6 @@ internal fun SpeechRecognitionScreen(onBack: () -> Unit, onOpenOss: () -> Unit) 
                     SpeechNote(
                         stringResource(
                             when (settings.asr) {
-                                AsrProvider.SYSTEM -> R.string.speech_asr_note_system
-                                AsrProvider.LOCAL -> R.string.speech_asr_note_local
                                 AsrProvider.QWEN_REALTIME, AsrProvider.DOUBAO -> R.string.speech_asr_note_streaming
                                 AsrProvider.QWEN_FLASH -> R.string.speech_asr_note_flash
                                 AsrProvider.QWEN_FILE -> R.string.speech_asr_note_file
@@ -90,17 +85,10 @@ internal fun SpeechRecognitionScreen(onBack: () -> Unit, onOpenOss: () -> Unit) 
                     )
                 }
             }
-            if (settings.asr != AsrProvider.SYSTEM && settings.asr != AsrProvider.LOCAL) {
-                item(key = "connection") {
-                    SpeechConnectionSection(store, synthesis = false)
-                }
+            item(key = "connection") {
+                SpeechConnectionSection(store, synthesis = false)
             }
-            if (settings.asr == AsrProvider.LOCAL) {
-                item(key = "local_model") {
-                    SpeechLocalModelSection(store)
-                }
-            }
-            if (settings.asr != AsrProvider.SYSTEM && settings.asr != AsrProvider.LOCAL && settings.asr != AsrProvider.DOUBAO) {
+            if (settings.asr != AsrProvider.DOUBAO) {
                 item(key = "language") {
                     EtaPreferenceGroup {
                         SpeechFieldColumn {
@@ -149,13 +137,11 @@ internal fun SpeechRecognitionScreen(onBack: () -> Unit, onOpenOss: () -> Unit) 
     }
 }
 
-/** 短音频与文件转写只在录音结束后识别，没有停顿判定，因此只对流式与系统识别提供自动发送。 */
+/** 短音频与文件转写只在录音结束后识别，没有停顿判定，因此只对流式识别提供自动发送。 */
 @Composable
 private fun SpeechResultSection(store: SpeechSettingsStore) {
     val settings = store.settings
-    val streaming = settings.asr != AsrProvider.QWEN_FLASH &&
-        settings.asr != AsrProvider.QWEN_FILE &&
-        settings.asr != AsrProvider.LOCAL
+    val streaming = settings.asr != AsrProvider.QWEN_FLASH && settings.asr != AsrProvider.QWEN_FILE
     val options = SpeechSettings.AUTO_SEND_SILENCE_OPTIONS
     Column {
         EtaPreferenceGroup {
@@ -219,76 +205,10 @@ private fun SpeechRecognitionTestSection(store: SpeechSettingsStore) {
                             cornerRadius = 17.dp,
                             insideMargin = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
                         )
-                    } else if (state.downloadAvailable) {
-                        EtaTextButton(
-                            text = stringResource(R.string.voice_download_model),
-                            onClick = { store.recognition.downloadModel() },
-                            minWidth = 0.dp,
-                            minHeight = 34.dp,
-                            cornerRadius = 17.dp,
-                            insideMargin = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
-                        )
                     }
                 },
             )
         }
         SpeechNote(stringResource(R.string.speech_test_note))
-    }
-}
-
-/** 本地识别模型管理：未下载时给出体积提示与下载入口，下载中展示进度，就绪后可删除重下。 */
-@Composable
-private fun SpeechLocalModelSection(store: SpeechSettingsStore) {
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    val state by SherpaModelStore.downloadState.collectAsState()
-    val downloaded = SherpaModelStore.isDownloaded(context)
-    val summary = when (val value = state) {
-        is SherpaModelStore.DownloadState.Downloading ->
-            stringResource(R.string.speech_local_model_downloading, (value.progress * 100).toInt())
-        is SherpaModelStore.DownloadState.Failed -> value.reason
-        else -> if (downloaded) {
-            stringResource(
-                R.string.speech_local_model_ready,
-                "%.1f".format(SherpaModelStore.totalBytes(context) / 1048576f),
-            )
-        } else {
-            stringResource(R.string.speech_local_model_absent, "36")
-        }
-    }
-    EtaPreferenceGroup {
-        EtaPreference(
-            title = stringResource(R.string.speech_local_model_title),
-            summary = summary,
-            summaryColor = BasicComponentDefaults.summaryColor(
-                color = if (state is SherpaModelStore.DownloadState.Failed) {
-                    StatusError
-                } else {
-                    MiuixTheme.colorScheme.onSurfaceVariantSummary
-                },
-            ),
-            endActions = {
-                val busy = state is SherpaModelStore.DownloadState.Downloading
-                if (downloaded && !busy) {
-                    EtaTextButton(
-                        text = stringResource(R.string.action_delete),
-                        onClick = { SherpaModelStore.delete(context) },
-                        minWidth = 0.dp,
-                        minHeight = 34.dp,
-                        cornerRadius = 17.dp,
-                        insideMargin = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
-                    )
-                } else if (!busy) {
-                    EtaTextButton(
-                        text = stringResource(R.string.voice_download_model),
-                        onClick = { scope.launch { SherpaModelStore.download(context) } },
-                        minWidth = 0.dp,
-                        minHeight = 34.dp,
-                        cornerRadius = 17.dp,
-                        insideMargin = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
-                    )
-                }
-            },
-        )
     }
 }

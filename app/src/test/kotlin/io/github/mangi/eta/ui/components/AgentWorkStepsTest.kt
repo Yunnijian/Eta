@@ -47,9 +47,9 @@ class AgentWorkStepsTest {
     @Test
     fun imageToolsStayIndividualSoScreenshotsRemainVisible() {
         val steps = listOf(
-            tool("v1", "virtual_observe"),
-            tool("v2", "virtual_observe"),
-            tool("o1", "observe_screen"),
+            tool("v1", "observe_screen"),
+            tool("v2", "observe_screen"),
+            tool("o1", "read_image"),
         ).toWorkSteps()
 
         assertEquals(3, steps.size)

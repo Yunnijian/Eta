@@ -579,8 +579,6 @@ private fun titleForRoute(route: AppRoute?): String = when (route) {
     is AppRoute.ModelProviders -> stringResource(R.string.route_model_providers)
     is AppRoute.CommunityCatalog -> "从目录添加"
     is AppRoute.CommunityCatalogProvider -> "选择模型"
-    is AppRoute.VirtualScreenSettings -> stringResource(R.string.virtual_screen_settings_title)
-    is AppRoute.VirtualScreenTools -> stringResource(R.string.virtual_screen_tools)
     is AppRoute.McpServers -> stringResource(R.string.route_mcp_servers)
     is AppRoute.McpServerDetail -> stringResource(R.string.route_mcp_server_detail)
     is AppRoute.ModelProviderDetail -> stringResource(R.string.route_provider_details)

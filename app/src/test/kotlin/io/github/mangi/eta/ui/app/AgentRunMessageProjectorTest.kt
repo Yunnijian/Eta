@@ -77,7 +77,7 @@ class AgentRunMessageProjectorTest {
         val runId = "run-images"
         val started = projector.startTool(
             runId,
-            AgentEvent.ToolStarted(1, "call-1", "virtual_observe", "{}"),
+            AgentEvent.ToolStarted(1, "call-1", "observe_screen", "{}"),
             emptyList(),
         )
         val finished = projector.finishTool(
@@ -85,7 +85,7 @@ class AgentRunMessageProjectorTest {
             AgentEvent.ToolFinished(
                 round = 1,
                 toolCallId = "call-1",
-                name = "virtual_observe",
+                name = "observe_screen",
                 resultSummary = "ok=true",
                 imageCount = 1,
                 imageBytes = 3,

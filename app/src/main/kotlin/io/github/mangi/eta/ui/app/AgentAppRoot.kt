@@ -83,8 +83,6 @@ import io.github.mangi.eta.ui.screens.permissions.PermissionHealthScreen
 import io.github.mangi.eta.ui.screens.skills.AgentSkillsScreen
 import io.github.mangi.eta.ui.screens.subagent.SubagentSettingsScreen
 import io.github.mangi.eta.ui.screens.terminal.LinuxEnvironmentScreen
-import io.github.mangi.eta.ui.screens.virtualscreen.VirtualScreenSettingsScreen
-import io.github.mangi.eta.ui.screens.virtualscreen.VirtualScreenToolsScreen
 import io.github.mangi.eta.ui.screens.terminal.LinuxFilesScreen
 import io.github.mangi.eta.ui.screens.terminal.SharedFoldersScreen
 import io.github.mangi.eta.ui.screens.terminal.TerminalEntryScreen
@@ -758,19 +756,6 @@ fun AgentAppRoot(
             entry<AppRoute.LinuxEnvironment>(swipeDismiss = swipeDismiss) {
                 LinuxEnvironmentScreen(
                     context = context,
-                    onNavigate = { route -> pushRoute(route) },
-                    onBack = ::popRoute,
-                )
-            }
-            entry<AppRoute.VirtualScreenSettings>(swipeDismiss = swipeDismiss) {
-                VirtualScreenSettingsScreen(
-                    context = context,
-                    onNavigate = { route -> pushRoute(route) },
-                    onBack = ::popRoute,
-                )
-            }
-            entry<AppRoute.VirtualScreenTools>(swipeDismiss = swipeDismiss) {
-                VirtualScreenToolsScreen(
                     onNavigate = { route -> pushRoute(route) },
                     onBack = ::popRoute,
                 )

@@ -12,17 +12,6 @@ import org.junit.Test
 
 class AgentToolRequirementsTest {
     @Test
-    fun virtualScreenToolsDoNotTakeMainScreenGuiControl() {
-        listOf("virtual_display", "virtual_observe", "virtual_tap", "virtual_swipe", "virtual_input").forEach { name ->
-            assertTrue("$name 应已登记", name in AgentToolRequirements.toolNames)
-            assertFalse("$name 不应占用主屏 GUI 控制权", AgentToolRequirements.requiresGuiControl(name))
-        }
-        assertTrue(AgentToolRequirements.requiresGuiControl("observe_screen"))
-        assertTrue(AgentToolRequirements.requiresGuiControl("tap_element"))
-        assertTrue(AgentToolRequirements.requiresGuiControl("release_gui").not())
-    }
-
-    @Test
     fun everyRegisteredToolHasExactlyOneRequirement() {
         val tools = catalog(root = true).also { CharacterMemoryTools.appendSchemas(it) }
         val executionOnly = setOf("input_text", "replace_text", "clear_text", "paste_text")
