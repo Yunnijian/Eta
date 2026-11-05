@@ -1,5 +1,6 @@
 package io.github.mangi.eta.ui.markdown
 
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.font.FontFamily
@@ -110,6 +111,24 @@ class MarkdownInlineTest {
         assertFalse(paragraph.text.text.contains('<'))
         assertTrue(paragraph.text.text.contains("Ctrl"))
         assertTrue(paragraph.text.hasSpanCovering("Ctrl") { it.fontFamily == FontFamily.Monospace })
+    }
+
+    @Test
+    fun inlineCodeUsesAnnotationInsteadOfRectangularBackground() {
+        val paragraph = paragraphOf("执行 `adb shell` 和 `mmd`")
+
+        val ranges = paragraph.text.getStringAnnotations(
+            INLINE_CODE_TAG,
+            0,
+            paragraph.text.length,
+        )
+        assertEquals(2, ranges.size)
+        assertFalse(
+            paragraph.text.spanStyles.any {
+                it.item.background != Color.Unspecified &&
+                    ranges.any { range -> it.start == range.start && it.end == range.end }
+            },
+        )
     }
 
     private fun paragraphOf(source: String, isComplete: Boolean = true): MarkdownParagraph =

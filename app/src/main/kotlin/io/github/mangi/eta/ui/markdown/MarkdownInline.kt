@@ -26,6 +26,9 @@ import org.intellij.markdown.parser.LinkMap
  * 行内样式里随主题变化的部分。它在后台构建 AnnotatedString 时就要确定，
  * 因此作为解析输入的一部分：主题切换会让缓存失效并重建，而不是在绘制时逐段改色。
  */
+/** 行内代码的区间标记；背景由渲染层按 TextLayoutResult 画圆角，SpanStyle 只负责字体。 */
+internal const val INLINE_CODE_TAG = "eta-inline-code"
+
 @Immutable
 internal data class MarkdownInlineStyle(
     val linkColor: Color,
@@ -258,18 +261,16 @@ internal class MarkdownInlineBuilder(
     }
 
     private fun AnnotatedString.Builder.appendCode(code: String) {
+        val start = length
         withStyle(
             SpanStyle(
                 fontFamily = FontFamily.Monospace,
                 fontSize = 0.88.em,
-                background = style.codeBackground,
             ),
         ) {
-            // 前后半角空格让底色不贴着字形，读起来像一个独立的代码片段。
-            append(' ')
             append(code)
-            append(' ')
         }
+        if (length > start) addStringAnnotation(INLINE_CODE_TAG, "", start, length)
     }
 
     private fun AnnotatedString.Builder.appendInlineLink(node: ASTNode, state: LineState) {

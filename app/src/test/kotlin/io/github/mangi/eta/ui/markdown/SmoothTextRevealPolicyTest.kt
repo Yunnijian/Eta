@@ -217,18 +217,18 @@ class SmoothTextRevealPolicyTest {
         val table = MarkdownTable(20, alignments = emptyList(), header = emptyList(), rows = emptyList())
 
         assertEquals(0.sp, markdownBlockGap(null, first, MarkdownTone.Answer))
-        assertEquals(12.sp, markdownBlockGap(first, second, MarkdownTone.Answer))
-        assertEquals(22.sp, markdownBlockGap(first, heading, MarkdownTone.Answer))
-        assertEquals(18.sp, markdownBlockGap(first, subHeading, MarkdownTone.Answer))
-        assertEquals(8.sp, markdownBlockGap(heading, second, MarkdownTone.Answer))
-        assertEquals(8.sp, markdownBlockGap(heading, subHeading, MarkdownTone.Answer))
-        assertEquals(14.sp, markdownBlockGap(first, list, MarkdownTone.Answer))
-        assertEquals(14.sp, markdownBlockGap(table, first, MarkdownTone.Answer))
+        assertEquals(16.sp, markdownBlockGap(first, second, MarkdownTone.Answer))
+        assertEquals(24.sp, markdownBlockGap(first, heading, MarkdownTone.Answer))
+        assertEquals(20.sp, markdownBlockGap(first, subHeading, MarkdownTone.Answer))
+        assertEquals(10.sp, markdownBlockGap(heading, second, MarkdownTone.Answer))
+        assertEquals(10.sp, markdownBlockGap(heading, subHeading, MarkdownTone.Answer))
+        assertEquals(16.sp, markdownBlockGap(first, list, MarkdownTone.Answer))
+        assertEquals(16.sp, markdownBlockGap(table, first, MarkdownTone.Answer))
 
         // 思考语气的间距整体收敛。
         assertEquals(0.sp, markdownBlockGap(null, first, MarkdownTone.Thinking))
-        assertEquals(9.sp, markdownBlockGap(first, second, MarkdownTone.Thinking))
-        assertEquals(16.5.sp, markdownBlockGap(first, heading, MarkdownTone.Thinking))
+        assertEquals(12.sp, markdownBlockGap(first, second, MarkdownTone.Thinking))
+        assertEquals(18.sp, markdownBlockGap(first, heading, MarkdownTone.Thinking))
     }
 
     @Test

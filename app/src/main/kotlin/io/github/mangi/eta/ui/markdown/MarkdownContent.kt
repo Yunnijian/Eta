@@ -40,9 +40,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
@@ -54,8 +56,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextMotion
 import androidx.compose.ui.text.style.TextOverflow
@@ -206,6 +211,42 @@ private fun MarkdownText(
             .toMap()
     }
     val reveal = scope.reveal
+    val codeRanges = remember(text) {
+        text.getStringAnnotations(INLINE_CODE_TAG, 0, text.length)
+            .map { annotation -> annotation.start until annotation.end }
+    }
+    var textLayout by remember(text) { mutableStateOf<TextLayoutResult?>(null) }
+    val codeBackground = scope.style.inline.codeBackground
+    val textMeasurer = rememberTextMeasurer()
+    val codeMetrics = remember(style, textMeasurer) {
+        val baseSize = style.fontSize.takeIf { it.isSpecified } ?: 16.sp
+        val codeStyle = style.copy(
+            fontFamily = FontFamily.Monospace,
+            fontSize = (baseSize.value * 0.88f).sp,
+            lineHeight = TextUnit.Unspecified,
+        )
+        val measured = textMeasurer.measure(AnnotatedString("M"), codeStyle, maxLines = 1)
+        InlineCodeMetrics(
+            top = measured.getLineTop(0) - measured.getLineBaseline(0),
+            bottom = measured.getLineBottom(0) - measured.getLineBaseline(0),
+        )
+    }
+    val codeHalo = if (codeRanges.isEmpty()) {
+        Modifier
+    } else {
+        Modifier.drawBehind {
+            val layout = textLayout ?: return@drawBehind
+            drawInlineCodeBackgrounds(
+                layout = layout,
+                ranges = codeRanges,
+                metrics = codeMetrics,
+                color = codeBackground,
+                horizontalPadding = 3.dp.toPx(),
+                verticalPadding = 2.dp.toPx(),
+                cornerRadius = 5.dp.toPx(),
+            )
+        }
+    }
     // 行内公式高于正文行高时，固定 lineHeight 会让它压到上一行；交给 Compose 按
     // 占位内容高度自行撑开行盒，其余段落仍保留主题行距。
     val textStyle = if (inlineContent.isEmpty()) style else style.copy(lineHeight = TextUnit.Unspecified)
@@ -216,7 +257,8 @@ private fun MarkdownText(
             style = textStyle,
             softWrap = softWrap,
             inlineContent = inlineContent,
-            modifier = modifier,
+            modifier = modifier.then(codeHalo),
+            onTextLayout = { layout -> textLayout = layout },
         )
         return
     }
@@ -228,9 +270,54 @@ private fun MarkdownText(
         style = animatedStyle,
         softWrap = softWrap,
         inlineContent = inlineContent,
-        modifier = modifier.smoothTextReveal(revealState),
-        onTextLayout = { layout -> revealState.onTextLayout(text.text, layout) },
+        modifier = modifier.then(codeHalo).smoothTextReveal(revealState),
+        onTextLayout = { layout ->
+            textLayout = layout
+            revealState.onTextLayout(text.text, layout)
+        },
     )
+}
+
+private data class InlineCodeMetrics(val top: Float, val bottom: Float)
+
+/** 行内代码的圆角底只画在字形周围，不改变换行、选择和复制语义。 */
+private fun DrawScope.drawInlineCodeBackgrounds(
+    layout: TextLayoutResult,
+    ranges: List<IntRange>,
+    metrics: InlineCodeMetrics,
+    color: Color,
+    horizontalPadding: Float,
+    verticalPadding: Float,
+    cornerRadius: Float,
+) {
+    val source = layout.layoutInput.text
+    ranges.forEach { range ->
+        if (range.first > range.last || range.first >= source.length) return@forEach
+        var offset = range.first
+        while (offset <= range.last) {
+            val line = layout.getLineForOffset(offset)
+            val lineEnd = layout.getLineEnd(line)
+            val segmentEnd = minOf(range.last + 1, lineEnd)
+            if (segmentEnd <= offset) break
+            val left = layout.getHorizontalPosition(offset, usePrimaryDirection = true)
+            val right = if (segmentEnd >= lineEnd) {
+                layout.getLineRight(line)
+            } else {
+                layout.getHorizontalPosition(segmentEnd, usePrimaryDirection = false)
+            }
+            // 代码字号小于正文，基线相同；按代码字体的基线度量画底，避免用正文行盒导致偏上/重叠。
+            val baseline = layout.getLineBaseline(line)
+            val top = baseline + metrics.top - verticalPadding
+            val bottom = baseline + metrics.bottom + verticalPadding
+            drawRoundRect(
+                color = color,
+                topLeft = Offset(left - horizontalPadding, top),
+                size = Size((right - left) + horizontalPadding * 2, bottom - top),
+                cornerRadius = CornerRadius(cornerRadius, cornerRadius),
+            )
+            offset = segmentEnd
+        }
+    }
 }
 
 // ── 公式块 ──────────────────────────────────────────────────────────────
@@ -459,8 +546,8 @@ private fun MarkdownListBlock(block: MarkdownList, scope: MarkdownRenderScope) {
     val depth = LocalListDepth.current
     val answer = scope.style.tone == MarkdownTone.Answer
     val itemGap = when {
-        block.loose -> if (answer) 10.dp else 8.dp
-        else -> if (answer) 4.dp else 2.dp
+        block.loose -> if (answer) 12.dp else 10.dp
+        else -> if (answer) 6.dp else 4.dp
     }
     // 序号按本列表最长的数字预留宽度，各项正文左边缘对齐。
     val markerWidth = if (block.ordered) {

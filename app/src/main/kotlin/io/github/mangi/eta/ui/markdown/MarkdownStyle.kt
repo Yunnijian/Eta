@@ -74,9 +74,9 @@ internal fun rememberMarkdownStyle(tone: MarkdownTone): MarkdownStyle {
         // 聊天里的标题只是段落强调，不是页面标题：字号克制，层级主要靠字重区分。
         val headings = if (answer) {
             listOf(
-                body.copy(fontSize = 20.sp, lineHeight = 28.sp, fontWeight = FontWeight.Bold),
-                body.copy(fontSize = 18.sp, lineHeight = 26.sp, fontWeight = FontWeight.Bold),
-                body.copy(fontSize = 17.sp, lineHeight = 25.sp, fontWeight = FontWeight.SemiBold),
+                body.copy(fontSize = 20.sp, lineHeight = 30.sp, fontWeight = FontWeight.Bold),
+                body.copy(fontSize = 18.sp, lineHeight = 28.sp, fontWeight = FontWeight.Bold),
+                body.copy(fontSize = 17.sp, lineHeight = 27.sp, fontWeight = FontWeight.SemiBold),
                 body.copy(fontWeight = FontWeight.SemiBold),
             )
         } else {
@@ -89,10 +89,10 @@ internal fun rememberMarkdownStyle(tone: MarkdownTone): MarkdownStyle {
             code = TextStyle(
                 fontFamily = FontFamily.Monospace,
                 fontSize = if (answer) 13.sp else 12.sp,
-                lineHeight = if (answer) 20.sp else 18.sp,
+                lineHeight = if (answer) 22.sp else 19.sp,
                 color = textColor,
             ),
-            table = body.copy(fontSize = if (answer) 14.sp else 13.sp, lineHeight = if (answer) 21.sp else 19.sp),
+            table = body.copy(fontSize = if (answer) 14.sp else 13.sp, lineHeight = if (answer) 22.sp else 20.sp),
             textColor = textColor,
             secondaryColor = colors.onSurfaceVariantSummary,
             markerColor = if (answer) colors.onSurface.copy(alpha = 0.55f) else colors.onSurfaceVariantSummary,
@@ -116,11 +116,11 @@ internal fun rememberMarkdownStyle(tone: MarkdownTone): MarkdownStyle {
 internal fun markdownBlockGap(previous: MarkdownBlock?, current: MarkdownBlock, tone: MarkdownTone): TextUnit {
     if (previous == null) return 0.sp
     val gap = when {
-        current is MarkdownHeading && previous is MarkdownHeading -> 8f
-        current is MarkdownHeading -> if (current.level <= 2) 22f else 18f
-        previous is MarkdownHeading -> 8f
-        previous is MarkdownParagraph && current is MarkdownParagraph -> 12f
-        else -> 14f
+        current is MarkdownHeading && previous is MarkdownHeading -> 10f
+        current is MarkdownHeading -> if (current.level <= 2) 24f else 20f
+        previous is MarkdownHeading -> 10f
+        previous is MarkdownParagraph && current is MarkdownParagraph -> 16f
+        else -> 16f
     }
     val scale = if (tone == MarkdownTone.Answer) 1f else THINKING_GAP_SCALE
     return (gap * scale).sp
@@ -128,8 +128,8 @@ internal fun markdownBlockGap(previous: MarkdownBlock?, current: MarkdownBlock, 
 
 /** 紧凑列表项内部（例如段落后紧跟子列表）只保留很小的间距。 */
 internal fun markdownCompactGap(previous: MarkdownBlock?, tone: MarkdownTone): TextUnit =
-    if (previous == null) 0.sp else if (tone == MarkdownTone.Answer) 4.sp else 3.sp
+    if (previous == null) 0.sp else if (tone == MarkdownTone.Answer) 6.sp else 4.sp
 
-internal const val ANSWER_LINE_HEIGHT_SP = 26
-internal const val THINKING_LINE_HEIGHT_SP = 22
+internal const val ANSWER_LINE_HEIGHT_SP = 28
+internal const val THINKING_LINE_HEIGHT_SP = 23
 private const val THINKING_GAP_SCALE = 0.75f
