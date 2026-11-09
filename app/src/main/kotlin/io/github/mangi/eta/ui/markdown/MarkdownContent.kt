@@ -126,7 +126,11 @@ internal fun LazyMarkdownContent(
     contentPadding: PaddingValues = PaddingValues(0.dp),
     overscrollEffect: OverscrollEffect? = null,
 ) {
-    val scope = remember(style) { MarkdownRenderScope(style, reveal = null) }
+    val latexConfig = remember(style) { latexConfigFor(style) }
+    val latexMeasurer = rememberLatexMeasurer(latexConfig)
+    val scope = remember(style, latexConfig, latexMeasurer) {
+        MarkdownRenderScope(style, reveal = null, latexConfig = latexConfig, latexMeasurer = latexMeasurer)
+    }
     val density = LocalDensity.current
     val answer = style.tone == MarkdownTone.Answer
     LazyColumn(
