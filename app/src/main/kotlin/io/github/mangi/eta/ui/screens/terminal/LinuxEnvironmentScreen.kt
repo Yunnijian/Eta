@@ -61,12 +61,19 @@ import io.github.mangi.eta.agent.terminal.PackageProfileInstallResult
 import io.github.mangi.eta.agent.terminal.PackageProfileInstallStage
 import io.github.mangi.eta.agent.terminal.SharedFolderMounts
 import io.github.mangi.eta.agent.terminal.terminalEnvironment
+import com.itos.coui.layout.CouiPageDefaults
+import com.itos.coui.layout.Divider
+import com.itos.coui.layout.Group
+import com.itos.coui.text.CouiTextKind
+import com.itos.coui.text.Text as CouiText
 import io.github.mangi.eta.core.AndroidAgentLogger
+import io.github.mangi.eta.data.model.AppearanceUiStyle
 import io.github.mangi.eta.data.repository.LinuxEnvironmentSettingsRepository
 import io.github.mangi.eta.ui.app.DshWebLaunchResult
 import io.github.mangi.eta.ui.app.DshWebLauncher
 import io.github.mangi.eta.ui.app.KimiWebLaunchResult
 import io.github.mangi.eta.ui.app.KimiWebLauncher
+import io.github.mangi.eta.ui.app.LocalUiStyle
 import io.github.mangi.eta.ui.app.OpenCodeWebLaunchResult
 import io.github.mangi.eta.ui.app.OpenCodeWebLauncher
 import io.github.mangi.eta.ui.app.launchForegroundExecution
@@ -74,6 +81,9 @@ import io.github.mangi.eta.ui.app.message
 import io.github.mangi.eta.ui.app.rememberDeviceCapabilities
 import io.github.mangi.eta.ui.app.rememberExecutionNotificationRequest
 import io.github.mangi.eta.ui.components.MiuixScaffoldPage
+import io.github.mangi.eta.ui.components.coui.CouiButton
+import io.github.mangi.eta.ui.components.coui.CouiLazyScaffoldPage
+import io.github.mangi.eta.ui.components.coui.CouiPreference
 import io.github.mangi.eta.ui.navigation.AppRoute
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -421,10 +431,8 @@ internal fun LinuxEnvironmentScreen(
         else -> null
     }
 
-    MiuixScaffoldPage(
-        title = stringResource(R.string.ui_linux_tool_environment_314d22),
-        onBack = onBack,
-    ) {
+    val uiStyle = LocalUiStyle.current
+    val listContent: androidx.compose.foundation.lazy.LazyListScope.() -> Unit = {
         item(key = "status-card") {
             val version = when (selectedDistribution) {
                 LinuxDistribution.ALPINE -> status.version
@@ -472,7 +480,11 @@ internal fun LinuxEnvironmentScreen(
                 },
             )
         }
-        item(key = "configuration-title") { SmallTitle(stringResource(R.string.linux_environment_configuration)) }
+        item(key = "configuration-title") {
+            if (uiStyle != AppearanceUiStyle.COUI) {
+                SmallTitle(stringResource(R.string.linux_environment_configuration))
+            }
+        }
         item(key = "configuration-card") {
             LinuxEnvironmentConfiguration(
                 distribution = selectedDistribution,
@@ -497,45 +509,70 @@ internal fun LinuxEnvironmentScreen(
                 },
             )
         }
-        item(key = "files-title") { SmallTitle(stringResource(R.string.linux_environment_files)) }
+        item(key = "files-title") {
+            if (uiStyle != AppearanceUiStyle.COUI) {
+                SmallTitle(stringResource(R.string.linux_environment_files))
+            }
+        }
         item(key = "files-card") {
-            Card(
-                modifier = Modifier
-                    .padding(horizontal = 12.dp)
-                    .padding(bottom = 12.dp),
-            ) {
-                ArrowPreference(
-                    title = stringResource(R.string.capability_workspace),
-                    summary = stringResource(R.string.capability_workspace_summary),
-                    onClick = { onNavigate(AppRoute.Workspace) },
-                )
-                if (selectedBaseReady) {
-                    ArrowPreference(
-                        title = stringResource(R.string.shared_folders_entry_title),
-                        summary = stringResource(R.string.linux_environment_shared_folders_summary),
-                        onClick = { onNavigate(AppRoute.SharedFolders) },
+            if (uiStyle == AppearanceUiStyle.COUI) {
+                Group(title = stringResource(R.string.linux_environment_files)) {
+                    CouiPreference(
+                        title = stringResource(R.string.capability_workspace),
+                        summary = stringResource(R.string.capability_workspace_summary),
+                        onClick = { onNavigate(AppRoute.Workspace) },
                     )
+                    if (selectedBaseReady) {
+                        Divider()
+                        CouiPreference(
+                            title = stringResource(R.string.shared_folders_entry_title),
+                            summary = stringResource(R.string.linux_environment_shared_folders_summary),
+                            onClick = { onNavigate(AppRoute.SharedFolders) },
+                        )
+                        Divider()
+                        CouiPreference(
+                            title = stringResource(R.string.linux_files_entry_title),
+                            summary = stringResource(R.string.linux_files_entry_summary),
+                            onClick = { onNavigate(AppRoute.LinuxFiles(selectedDistribution.wireName)) },
+                        )
+                    }
+                }
+            } else {
+                Card(
+                    modifier = Modifier
+                        .padding(horizontal = 12.dp)
+                        .padding(bottom = 12.dp),
+                ) {
                     ArrowPreference(
-                        title = stringResource(R.string.linux_files_entry_title),
-                        summary = stringResource(R.string.linux_files_entry_summary),
-                        onClick = { onNavigate(AppRoute.LinuxFiles(selectedDistribution.wireName)) },
+                        title = stringResource(R.string.capability_workspace),
+                        summary = stringResource(R.string.capability_workspace_summary),
+                        onClick = { onNavigate(AppRoute.Workspace) },
                     )
+                    if (selectedBaseReady) {
+                        ArrowPreference(
+                            title = stringResource(R.string.shared_folders_entry_title),
+                            summary = stringResource(R.string.linux_environment_shared_folders_summary),
+                            onClick = { onNavigate(AppRoute.SharedFolders) },
+                        )
+                        ArrowPreference(
+                            title = stringResource(R.string.linux_files_entry_title),
+                            summary = stringResource(R.string.linux_files_entry_summary),
+                            onClick = { onNavigate(AppRoute.LinuxFiles(selectedDistribution.wireName)) },
+                        )
+                    }
                 }
             }
         }
 
         if (selectedToolsReady) {
             item(key = "optional-tools-title") {
-                SmallTitle(stringResource(R.string.ui_optional_tools_3097d6), modifier = Modifier.animateItem())
+                if (uiStyle != AppearanceUiStyle.COUI) {
+                    SmallTitle(stringResource(R.string.ui_optional_tools_3097d6), modifier = Modifier.animateItem())
+                }
             }
             item(key = "optional-tools-card") {
-                Card(
-                    modifier = Modifier
-                        .animateItem()
-                        .padding(horizontal = 12.dp)
-                        .padding(bottom = 12.dp),
-                ) {
-                    packageProfileUis.forEach { profileUi ->
+                val optionalItemsContent: @Composable () -> Unit = {
+                    packageProfileUis.forEachIndexed { index, profileUi ->
                         val ready = profileReady[profileUi.target] == true
                         val isKimi = profileUi.target == InstallTarget.KIMI
                         val isOpenCode = profileUi.target == InstallTarget.OPENCODE
@@ -567,187 +604,295 @@ internal fun LinuxEnvironmentScreen(
                             iconVector != null -> { { PackageIcon(iconVector) } }
                             else -> null
                         }
-                        BasicComponent(
-                            title = stringResource(profileUi.titleRes),
-                            startAction = startIcon,
-                            summary = if (busyTarget == profileUi.target) {
-                                profileProgressSummary ?: stringResource(summaryRes)
-                            } else if (ready) {
-                                stringResource(readyRes)
-                            } else {
-                                stringResource(summaryRes)
+                        val rowTitle = stringResource(profileUi.titleRes)
+                        val rowSummary = if (busyTarget == profileUi.target) {
+                            profileProgressSummary ?: stringResource(summaryRes)
+                        } else if (ready) {
+                            stringResource(readyRes)
+                        } else {
+                            stringResource(summaryRes)
+                        }
+                        val primaryText = when {
+                            isKimi && ready -> stringResource(
+                                if (kimiWebLaunching) {
+                                    R.string.linux_kimi_web_starting
+                                } else if (kimiWebRunning) {
+                                    R.string.action_open
+                                } else {
+                                    R.string.linux_kimi_web_launch
+                                },
+                            )
+                            isOpenCode && ready -> stringResource(
+                                if (opencodeWebLaunching) {
+                                    R.string.linux_opencode_web_starting
+                                } else if (opencodeWebRunning) {
+                                    R.string.action_open
+                                } else {
+                                    R.string.linux_opencode_web_launch
+                                },
+                            )
+                            isDsh && ready -> stringResource(
+                                if (dshWebLaunching) {
+                                    R.string.linux_dsh_web_starting
+                                } else if (dshWebRunning) {
+                                    R.string.action_open
+                                } else {
+                                    R.string.linux_dsh_web_launch
+                                },
+                            )
+                            ready -> stringResource(R.string.linux_installed)
+                            busyTarget == profileUi.target -> stringResource(R.string.linux_installing)
+                            else -> stringResource(R.string.linux_install)
+                        }
+                        val primaryEnabled = !requiresRoot && if (isWebTool && ready) {
+                            !(when {
+                                isKimi -> kimiWebLaunching
+                                isOpenCode -> opencodeWebLaunching
+                                else -> dshWebLaunching
+                            }) && busyTarget == null
+                        } else {
+                            busyTarget == null && !ready
+                        }
+                        val onPrimaryClick: () -> Unit = {
+                            if (isKimi && ready) {
+                                launchKimiWeb()
+                            } else if (isOpenCode && ready) {
+                                launchOpenCodeWeb()
+                            } else if (isDsh && ready) {
+                                launchDshWeb()
+                            } else if (busyTarget == null && !ready) {
+                                busyTarget = profileUi.target
+                                resultMessage = null
+                                val profileTitle = context.getString(profileUi.titleRes)
+                                launchInstallation {
+                                    val profileInstaller = profileInstallers.getValue(profileUi.target)
+                                    val result = profileInstaller.install { update ->
+                                        withContext(Dispatchers.Main.immediate) {
+                                            profileProgressSummary = update.summary(context, profileTitle)
+                                        }
+                                    }
+                                    profileReady = profileReady +
+                                        (profileUi.target to profileInstaller.isReady())
+                                    profileProgressSummary = null
+                                    busyTarget = null
+                                    resultMessage = result.toMessage(context, profileTitle)
+                                }
+                            }
+                        }
+                        val onStopKimi: () -> Unit = {
+                            coroutineScope.launch {
+                                val stopped = kimiWebLauncher.stop(selectedDistribution.terminalEnvironment)
+                                kimiWebRunning = !stopped
+                            }
+                        }
+                        val onStopOpenCode: () -> Unit = {
+                            coroutineScope.launch {
+                                val stopped = opencodeWebLauncher.stop(selectedDistribution.terminalEnvironment)
+                                opencodeWebRunning = !stopped
+                            }
+                        }
+                        val onStopDsh: () -> Unit = {
+                            coroutineScope.launch {
+                                val stopped = dshWebLauncher.stop(selectedDistribution.terminalEnvironment)
+                                dshWebRunning = !stopped
+                            }
+                        }
+                        if (uiStyle == AppearanceUiStyle.COUI) {
+                            CouiPreference(
+                                title = rowTitle,
+                                summary = rowSummary,
+                                icon = startIcon,
+                                showChevron = false,
+                                trailing = {
+                                    if (isKimi && kimiWebRunning) {
+                                        CouiButton(
+                                            text = stringResource(R.string.action_stop),
+                                            enabled = !kimiWebLaunching && !requiresRoot,
+                                            minHeight = 32.dp,
+                                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                                            onClick = onStopKimi,
+                                        )
+                                        Spacer(Modifier.width(8.dp))
+                                    }
+                                    if (isOpenCode && opencodeWebRunning) {
+                                        CouiButton(
+                                            text = stringResource(R.string.action_stop),
+                                            enabled = !opencodeWebLaunching && !requiresRoot,
+                                            minHeight = 32.dp,
+                                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                                            onClick = onStopOpenCode,
+                                        )
+                                        Spacer(Modifier.width(8.dp))
+                                    }
+                                    if (isDsh && dshWebRunning) {
+                                        CouiButton(
+                                            text = stringResource(R.string.action_stop),
+                                            enabled = !dshWebLaunching && !requiresRoot,
+                                            minHeight = 32.dp,
+                                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                                            onClick = onStopDsh,
+                                        )
+                                        Spacer(Modifier.width(8.dp))
+                                    }
+                                    CouiButton(
+                                        text = primaryText,
+                                        enabled = primaryEnabled,
+                                        minHeight = 32.dp,
+                                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                                        onClick = onPrimaryClick,
+                                    )
+                                },
+                            )
+                            Divider()
+                        } else {
+                            BasicComponent(
+                                title = rowTitle,
+                                startAction = startIcon,
+                                summary = rowSummary,
+                                endActions = {
+                                    if (isKimi && kimiWebRunning) {
+                                        TextButton(
+                                            text = stringResource(R.string.action_stop),
+                                            enabled = !kimiWebLaunching && !requiresRoot,
+                                            minWidth = 0.dp,
+                                            minHeight = 32.dp,
+                                            insideMargin = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                                            onClick = onStopKimi,
+                                        )
+                                        Spacer(Modifier.width(8.dp))
+                                    }
+                                    if (isOpenCode && opencodeWebRunning) {
+                                        TextButton(
+                                            text = stringResource(R.string.action_stop),
+                                            enabled = !opencodeWebLaunching && !requiresRoot,
+                                            minWidth = 0.dp,
+                                            minHeight = 32.dp,
+                                            insideMargin = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                                            onClick = onStopOpenCode,
+                                        )
+                                        Spacer(Modifier.width(8.dp))
+                                    }
+                                    if (isDsh && dshWebRunning) {
+                                        TextButton(
+                                            text = stringResource(R.string.action_stop),
+                                            enabled = !dshWebLaunching && !requiresRoot,
+                                            minWidth = 0.dp,
+                                            minHeight = 32.dp,
+                                            insideMargin = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                                            onClick = onStopDsh,
+                                        )
+                                        Spacer(Modifier.width(8.dp))
+                                    }
+                                    TextButton(
+                                        text = primaryText,
+                                        enabled = primaryEnabled,
+                                        minWidth = 0.dp,
+                                        minHeight = 32.dp,
+                                        insideMargin = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                                        onClick = onPrimaryClick,
+                                    )
+                                },
+                            )
+                        }
+                    }
+
+                    val apkSummary = apkAnalysisProgress?.summary(context) ?: if (apkAnalysisReady) {
+                        context.getString(R.string.linux_apk_tools_ready)
+                    } else {
+                        context.getString(R.string.linux_apk_tools_summary)
+                    }
+                    val apkButtonText = when {
+                        apkAnalysisReady -> context.getString(R.string.linux_installed)
+                        busyTarget == InstallTarget.APK_ANALYSIS -> context.getString(R.string.linux_installing)
+                        else -> context.getString(R.string.linux_install)
+                    }
+                    val apkEnabled = busyTarget == null && !requiresRoot && !apkAnalysisReady
+                    val onApkInstall: () -> Unit = {
+                        if (busyTarget == null && !apkAnalysisReady) {
+                            busyTarget = InstallTarget.APK_ANALYSIS
+                            resultMessage = null
+                            launchInstallation {
+                                val result = apkAnalysisInstaller.install { update ->
+                                    withContext(Dispatchers.Main.immediate) {
+                                        apkAnalysisProgress = update
+                                    }
+                                }
+                                apkAnalysisReady = apkAnalysisInstaller.isReady()
+                                apkAnalysisProgress = null
+                                busyTarget = null
+                                resultMessage = result.toMessage(context)
+                            }
+                        }
+                    }
+                    if (uiStyle == AppearanceUiStyle.COUI) {
+                        CouiPreference(
+                            title = stringResource(R.string.ui_apk_analysis_95ad17),
+                            summary = apkSummary,
+                            icon = { PackageIcon(painter = painterResource(R.drawable.ic_linux_apk_analysis)) },
+                            showChevron = false,
+                            trailing = {
+                                CouiButton(
+                                    text = apkButtonText,
+                                    enabled = apkEnabled,
+                                    minHeight = 32.dp,
+                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                                    onClick = onApkInstall,
+                                )
                             },
+                        )
+                    } else {
+                        BasicComponent(
+                            title = stringResource(R.string.ui_apk_analysis_95ad17),
+                            startAction = { PackageIcon(painter = painterResource(R.drawable.ic_linux_apk_analysis)) },
+                            summary = apkSummary,
                             endActions = {
-                                if (isKimi && kimiWebRunning) {
-                                    TextButton(
-                                        text = stringResource(R.string.action_stop),
-                                        enabled = !kimiWebLaunching && !requiresRoot,
-                                        minWidth = 0.dp,
-                                        minHeight = 32.dp,
-                                        insideMargin = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                                        onClick = {
-                                            coroutineScope.launch {
-                                                val stopped = kimiWebLauncher.stop(selectedDistribution.terminalEnvironment)
-                                                kimiWebRunning = !stopped
-                                            }
-                                        },
-                                    )
-                                    Spacer(Modifier.width(8.dp))
-                                }
-                                if (isOpenCode && opencodeWebRunning) {
-                                    TextButton(
-                                        text = stringResource(R.string.action_stop),
-                                        enabled = !opencodeWebLaunching && !requiresRoot,
-                                        minWidth = 0.dp,
-                                        minHeight = 32.dp,
-                                        insideMargin = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                                        onClick = {
-                                            coroutineScope.launch {
-                                                val stopped = opencodeWebLauncher.stop(selectedDistribution.terminalEnvironment)
-                                                opencodeWebRunning = !stopped
-                                            }
-                                        },
-                                    )
-                                    Spacer(Modifier.width(8.dp))
-                                }
-                                if (isDsh && dshWebRunning) {
-                                    TextButton(
-                                        text = stringResource(R.string.action_stop),
-                                        enabled = !dshWebLaunching && !requiresRoot,
-                                        minWidth = 0.dp,
-                                        minHeight = 32.dp,
-                                        insideMargin = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                                        onClick = {
-                                            coroutineScope.launch {
-                                                val stopped = dshWebLauncher.stop(selectedDistribution.terminalEnvironment)
-                                                dshWebRunning = !stopped
-                                            }
-                                        },
-                                    )
-                                    Spacer(Modifier.width(8.dp))
-                                }
                                 TextButton(
-                                    text = when {
-                                        isKimi && ready -> stringResource(
-                                            if (kimiWebLaunching) {
-                                                R.string.linux_kimi_web_starting
-                                            } else if (kimiWebRunning) {
-                                                R.string.action_open
-                                            } else {
-                                                R.string.linux_kimi_web_launch
-                                            },
-                                        )
-                                        isOpenCode && ready -> stringResource(
-                                            if (opencodeWebLaunching) {
-                                                R.string.linux_opencode_web_starting
-                                            } else if (opencodeWebRunning) {
-                                                R.string.action_open
-                                            } else {
-                                                R.string.linux_opencode_web_launch
-                                            },
-                                        )
-                                        isDsh && ready -> stringResource(
-                                            if (dshWebLaunching) {
-                                                R.string.linux_dsh_web_starting
-                                            } else if (dshWebRunning) {
-                                                R.string.action_open
-                                            } else {
-                                                R.string.linux_dsh_web_launch
-                                            },
-                                        )
-                                        ready -> stringResource(R.string.linux_installed)
-                                        busyTarget == profileUi.target -> stringResource(R.string.linux_installing)
-                                        else -> stringResource(R.string.linux_install)
-                                    },
-                                    enabled = !requiresRoot && if (isWebTool && ready) {
-                                        !(when {
-                                            isKimi -> kimiWebLaunching
-                                            isOpenCode -> opencodeWebLaunching
-                                            else -> dshWebLaunching
-                                        }) && busyTarget == null
-                                    } else {
-                                        busyTarget == null && !ready
-                                    },
+                                    text = apkButtonText,
+                                    enabled = apkEnabled,
                                     minWidth = 0.dp,
                                     minHeight = 32.dp,
                                     insideMargin = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                                    onClick = {
-                                        if (isKimi && ready) {
-                                            launchKimiWeb()
-                                            return@TextButton
-                                        }
-                                        if (isOpenCode && ready) {
-                                            launchOpenCodeWeb()
-                                            return@TextButton
-                                        }
-                                        if (isDsh && ready) {
-                                            launchDshWeb()
-                                            return@TextButton
-                                        }
-                                        if (busyTarget != null || ready) return@TextButton
-                                        busyTarget = profileUi.target
-                                        resultMessage = null
-                                        val profileTitle = context.getString(profileUi.titleRes)
-                                        launchInstallation {
-                                            val profileInstaller = profileInstallers.getValue(profileUi.target)
-                                            val result = profileInstaller.install { update ->
-                                                withContext(Dispatchers.Main.immediate) {
-                                                    profileProgressSummary = update.summary(context, profileTitle)
-                                                }
-                                            }
-                                            profileReady = profileReady +
-                                                (profileUi.target to profileInstaller.isReady())
-                                            profileProgressSummary = null
-                                            busyTarget = null
-                                            resultMessage = result.toMessage(context, profileTitle)
-                                        }
-                                    },
+                                    onClick = onApkInstall,
                                 )
                             },
                         )
                     }
-                    BasicComponent(
-                        title = stringResource(R.string.ui_apk_analysis_95ad17),
-                        startAction = {
-                            PackageIcon(painter = painterResource(R.drawable.ic_linux_apk_analysis))
-                        },
-                        summary = apkAnalysisProgress?.summary(context) ?: if (apkAnalysisReady) {
-                            context.getString(R.string.linux_apk_tools_ready)
-                        } else {
-                            context.getString(R.string.linux_apk_tools_summary)
-                        },
-                        endActions = {
-                            TextButton(
-                                text = when {
-                                    apkAnalysisReady -> context.getString(R.string.linux_installed)
-                                    busyTarget == InstallTarget.APK_ANALYSIS -> context.getString(R.string.linux_installing)
-                                    else -> context.getString(R.string.linux_install)
-                                },
-                                enabled = busyTarget == null && !requiresRoot && !apkAnalysisReady,
-                                minWidth = 0.dp,
-                                minHeight = 32.dp,
-                                insideMargin = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                                onClick = {
-                                    if (busyTarget != null || apkAnalysisReady) return@TextButton
-                                    busyTarget = InstallTarget.APK_ANALYSIS
-                                    resultMessage = null
-                                    launchInstallation {
-                                        val result = apkAnalysisInstaller.install { update ->
-                                            withContext(Dispatchers.Main.immediate) {
-                                                apkAnalysisProgress = update
-                                            }
-                                        }
-                                        apkAnalysisReady = apkAnalysisInstaller.isReady()
-                                        apkAnalysisProgress = null
-                                        busyTarget = null
-                                        resultMessage = result.toMessage(context)
-                                    }
-                                },
-                            )
-                        },
-                    )
+                }
+                if (uiStyle == AppearanceUiStyle.COUI) {
+                    Group(
+                        modifier = Modifier.animateItem(),
+                        title = stringResource(R.string.ui_optional_tools_3097d6),
+                    ) {
+                        optionalItemsContent()
+                    }
+                } else {
+                    Card(
+                        modifier = Modifier
+                            .animateItem()
+                            .padding(horizontal = 12.dp)
+                            .padding(bottom = 12.dp),
+                    ) {
+                        optionalItemsContent()
+                    }
                 }
             }
+        }
+    }
+
+    when (uiStyle) {
+        AppearanceUiStyle.COUI -> {
+            CouiLazyScaffoldPage(
+                title = stringResource(R.string.ui_linux_tool_environment_314d22),
+                onBack = onBack,
+                content = listContent,
+            )
+        }
+        AppearanceUiStyle.MIUIX -> {
+            MiuixScaffoldPage(
+                title = stringResource(R.string.ui_linux_tool_environment_314d22),
+                onBack = onBack,
+                content = listContent,
+            )
         }
     }
 }
